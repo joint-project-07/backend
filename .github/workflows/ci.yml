@@ -1,0 +1,76 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - develop # develop 브랜치에 푸시할 때
+  pull_request:
+    branches:
+      - develop # develop 브랜치로 PR 날릴 때
+
+jobs:
+  # 빌드를 위한 Job
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 리포지토리 체크아웃
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      # Python 환경 설정
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.13'
+      # 의존성 설치
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 - --version 1.8.5
+          export PATH="$HOME/.local/bin:$PATH"
+
+      - name: Install dependencies using Poetry
+        run: |
+          poetry install --no-dev
+      # 환경 변수 설정 (GitHub Secrets 사용)
+      - name: Set up environment variables for dev
+        run: |
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> dev.env
+          echo "DEBUG=${{ secrets.DEBUG_DEV }}" >> dev.env
+          echo "DB_HOST=${{ secrets.DB_HOST_DEV }}" >> dev.env
+          echo "DB_NAME=${{ secrets.DB_NAME }}" >> dev.env
+          echo "DB_USER=${{ secrets.DB_USER }}" >> dev.env
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> dev.env
+          echo "DB_PORT=${{ secrets.DB_PORT }}" >> dev.env
+
+      - name: Set up environment variables for prod
+        run: |
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> prod.env
+          echo "DEBUG=${{ secrets.DEBUG_PROD }}" >> prod.env
+          echo "DB_HOST=${{ secrets.DB_HOST_PROD }}" >> prod.env
+          echo "DB_NAME=${{ secrets.DB_NAME }}" >> prod.env
+          echo "DB_USER=${{ secrets.DB_USER }}" >> prod.env
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> prod.env
+          echo "DB_PORT=${{ secrets.DB_PORT }}" >> prod.env
+      # 마이그레이션 실행
+      - name: Run migrations
+        run: |
+          python manage.py migrate
+# 테스트를 위한 Job
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: ${{ secrets.DB_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.DB_NAME }}
+        ports:
+          - 5432:5432
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      # 테스트 실행
+      - name: Run tests
+        run: |
+          python manage.py test

@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "dangnyang-heroes"
+version = "0.1.0"
+description = ""
+authors = ["SOLBI <thfqlsla35@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+django = "^5.1.6"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
