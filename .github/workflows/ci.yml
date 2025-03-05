@@ -28,13 +28,20 @@ jobs:
           curl -sSL https://install.python-poetry.org | python3 - --version 1.8.5
           export PATH="$HOME/.local/bin:$PATH"
 
+      # Poetry 환경 활성화
+      - name: Activate Poetry environment
+        run: |
+          source $HOME/.poetry/env
+          poetry install
+
       - name: Install dependencies using Poetry
         run: |
-          poetry install
-            # 환경 변수 설정 (GitHub Secrets 사용)
+          poetry install --no-dev
+          poetry show django  # Django가 제대로 설치되었는지 확인
+
       - name: Set up environment variables for dev
         run: |
-          cd .envs  # .envs 디렉토리로 이동
+          mkdir -p .envs  # .envs 디렉토리 생성
           echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .envs/dev.env
           echo "DEBUG=${{ secrets.DEBUG_DEV }}" >> .envs/dev.env
           echo "DB_HOST=${{ secrets.DB_HOST_DEV }}" >> .envs/dev.env
@@ -45,7 +52,7 @@ jobs:
 
       - name: Set up environment variables for prod
         run: |
-          cd .envs  # .envs 디렉토리로 이동
+          mkdir -p .envs  # .envs 디렉토리 생성
           echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .envs/prod.env
           echo "DEBUG=${{ secrets.DEBUG_PROD }}" >> .envs/prod.env
           echo "DB_HOST=${{ secrets.DB_HOST_PROD }}" >> .envs/prod.env
@@ -53,6 +60,7 @@ jobs:
           echo "DB_USER=${{ secrets.DB_USER }}" >> .envs/prod.env
           echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .envs/prod.env
           echo "DB_PORT=${{ secrets.DB_PORT }}" >> .envs/prod.env
+
       # 마이그레이션 실행
       - name: Run migrations
         run: |
