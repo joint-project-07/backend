@@ -12,6 +12,15 @@ jobs:
   # 빌드를 위한 Job
   build:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: ${{ secrets.DB_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.DB_NAME }}
+        ports:
+          - 5432:5432
 
     steps:
       # 리포지토리 체크아웃
@@ -27,8 +36,6 @@ jobs:
         run: |
           curl -sSL https://install.python-poetry.org | python3 - --version 1.8.5
           export PATH="$HOME/.local/bin:$PATH"
-
-      # Poetry 환경 활성화
 
       - name: Install dependencies using Poetry
         run: |
@@ -61,22 +68,7 @@ jobs:
       - name: Run migrations
         run: |
           poetry run python manage.py migrate
-# 테스트를 위한 Job
-  test:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:latest
-        env:
-          POSTGRES_USER: ${{ secrets.DB_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.DB_NAME }}
-        ports:
-          - 5432:5432
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      # 테스트 실행
+
       - name: Run tests
         run: |
           poetry run python manage.py test
