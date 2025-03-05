@@ -26,14 +26,15 @@ jobs:
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 - --version 1.8.5
-          PATH=$PATH:/usr/local/bin/poetry
+          export PATH="$HOME/.local/bin:$PATH"
 
       - name: Install dependencies using Poetry
         run: |
-          poetry install --no-dev
+          poetry install
             # 환경 변수 설정 (GitHub Secrets 사용)
       - name: Set up environment variables for dev
         run: |
+          cd .envs  # .envs 디렉토리로 이동
           echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .envs/dev.env
           echo "DEBUG=${{ secrets.DEBUG_DEV }}" >> .envs/dev.env
           echo "DB_HOST=${{ secrets.DB_HOST_DEV }}" >> .envs/dev.env
@@ -44,6 +45,7 @@ jobs:
 
       - name: Set up environment variables for prod
         run: |
+          cd .envs  # .envs 디렉토리로 이동
           echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .envs/prod.env
           echo "DEBUG=${{ secrets.DEBUG_PROD }}" >> .envs/prod.env
           echo "DB_HOST=${{ secrets.DB_HOST_PROD }}" >> .envs/prod.env
