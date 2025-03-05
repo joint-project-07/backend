@@ -29,10 +29,6 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
 
       # Poetry 환경 활성화
-      - name: Activate Poetry environment
-        run: |
-          source $HOME/.poetry/env
-          poetry install
 
       - name: Install dependencies using Poetry
         run: |
