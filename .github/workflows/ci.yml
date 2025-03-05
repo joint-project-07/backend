@@ -64,7 +64,7 @@ jobs:
       # 마이그레이션 실행
       - name: Run migrations
         run: |
-          python manage.py migrate
+          poetry run python manage.py migrate
 # 테스트를 위한 Job
   test:
     runs-on: ubuntu-latest
@@ -83,4 +83,4 @@ jobs:
       # 테스트 실행
       - name: Run tests
         run: |
-          python manage.py test
+          poetry run python manage.py test
