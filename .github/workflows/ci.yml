@@ -44,25 +44,15 @@ jobs:
 
       - name: Set up environment variables for dev
         run: |
+          echo "ENV=dev" >> $GITHUB_ENV
           mkdir -p .envs  # .envs 디렉토리 생성
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .envs/dev.env
-          echo "DEBUG=${{ secrets.DEBUG_DEV }}" >> .envs/dev.env
-          echo "DB_HOST=${{ secrets.DB_HOST_DEV }}" >> .envs/dev.env
-          echo "DB_NAME=${{ secrets.DB_NAME }}" >> .envs/dev.env
-          echo "DB_USER=${{ secrets.DB_USER }}" >> .envs/dev.env
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .envs/dev.env
-          echo "DB_PORT=${{ secrets.DB_PORT }}" >> .envs/dev.env
-
-      - name: Set up environment variables for prod
-        run: |
-          mkdir -p .envs  # .envs 디렉토리 생성
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .envs/prod.env
-          echo "DEBUG=${{ secrets.DEBUG_PROD }}" >> .envs/prod.env
-          echo "DB_HOST=${{ secrets.DB_HOST_PROD }}" >> .envs/prod.env
-          echo "DB_NAME=${{ secrets.DB_NAME }}" >> .envs/prod.env
-          echo "DB_USER=${{ secrets.DB_USER }}" >> .envs/prod.env
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .envs/prod.env
-          echo "DB_PORT=${{ secrets.DB_PORT }}" >> .envs/prod.env
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> $GITHUB_ENV
+          echo "DEBUG=${{ secrets.DEBUG_DEV }}" >> $GITHUB_ENV
+          echo "DB_HOST=${{ secrets.DB_HOST_DEV }}" >> $GITHUB_ENV
+          echo "DB_NAME=${{ secrets.DB_NAME }}" >> $GITHUB_ENV
+          echo "DB_USER=${{ secrets.DB_USER }}" >> $GITHUB_ENV
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> $GITHUB_ENV
+          echo "DB_PORT=${{ secrets.DB_PORT }}" >> $GITHUB_ENV
 
       # 마이그레이션 실행
       - name: Run migrations
