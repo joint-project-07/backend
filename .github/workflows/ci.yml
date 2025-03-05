@@ -36,7 +36,7 @@ jobs:
 
       - name: Install dependencies using Poetry
         run: |
-          poetry install --no-dev
+          poetry install
           poetry show django  # Django가 제대로 설치되었는지 확인
 
       - name: Set up environment variables for dev
