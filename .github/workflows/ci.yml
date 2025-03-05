@@ -31,26 +31,26 @@ jobs:
       - name: Install dependencies using Poetry
         run: |
           poetry install --no-dev
-      # 환경 변수 설정 (GitHub Secrets 사용)
+            # 환경 변수 설정 (GitHub Secrets 사용)
       - name: Set up environment variables for dev
         run: |
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> dev.env
-          echo "DEBUG=${{ secrets.DEBUG_DEV }}" >> dev.env
-          echo "DB_HOST=${{ secrets.DB_HOST_DEV }}" >> dev.env
-          echo "DB_NAME=${{ secrets.DB_NAME }}" >> dev.env
-          echo "DB_USER=${{ secrets.DB_USER }}" >> dev.env
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> dev.env
-          echo "DB_PORT=${{ secrets.DB_PORT }}" >> dev.env
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .envs/dev.env
+          echo "DEBUG=${{ secrets.DEBUG_DEV }}" >> .envs/dev.env
+          echo "DB_HOST=${{ secrets.DB_HOST_DEV }}" >> .envs/dev.env
+          echo "DB_NAME=${{ secrets.DB_NAME }}" >> .envs/dev.env
+          echo "DB_USER=${{ secrets.DB_USER }}" >> .envs/dev.env
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .envs/dev.env
+          echo "DB_PORT=${{ secrets.DB_PORT }}" >> .envs/dev.env
 
       - name: Set up environment variables for prod
         run: |
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> prod.env
-          echo "DEBUG=${{ secrets.DEBUG_PROD }}" >> prod.env
-          echo "DB_HOST=${{ secrets.DB_HOST_PROD }}" >> prod.env
-          echo "DB_NAME=${{ secrets.DB_NAME }}" >> prod.env
-          echo "DB_USER=${{ secrets.DB_USER }}" >> prod.env
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> prod.env
-          echo "DB_PORT=${{ secrets.DB_PORT }}" >> prod.env
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .envs/prod.env
+          echo "DEBUG=${{ secrets.DEBUG_PROD }}" >> .envs/prod.env
+          echo "DB_HOST=${{ secrets.DB_HOST_PROD }}" >> .envs/prod.env
+          echo "DB_NAME=${{ secrets.DB_NAME }}" >> .envs/prod.env
+          echo "DB_USER=${{ secrets.DB_USER }}" >> .envs/prod.env
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .envs/prod.env
+          echo "DB_PORT=${{ secrets.DB_PORT }}" >> .envs/prod.env
       # 마이그레이션 실행
       - name: Run migrations
         run: |

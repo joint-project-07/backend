@@ -6,7 +6,7 @@ services:
     container_name: dnh-postgres-container # 컨테이너 이름 지정
     restart: always  # 컨테이너 중단 시 자동 재시작
     env_file:
-      - dev.env # 개발환경에서 사용할 .env 파일
+      - .envs/dev.env # 개발환경에서 사용할 .env 파일
     ports:
       - "5432:5432" # 호스트(로컬)와 컨테이너의 PostgreSQL 포트 연결
     volumes:
@@ -21,7 +21,7 @@ services:
     ports:
       - "8000:8000" # django의 기본 포트를 컨테이너와 연결
     env_file:
-      - dev.env # 개발환경에서 사용할 .env 파일
+      - .envs/dev.env # 개발환경에서 사용할 .env 파일
     volumes:
       - .:/app  # 현재 디렉토리를 컨테이너 내 /app에 마운트
       - ./staticfiles:/app/staticfiles  # 정적 파일 공유
