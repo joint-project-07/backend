@@ -1,64 +1,54 @@
-name: CI/CD Pipeline
+name: Django CI
 
 on:
   push:
-    branches:
-      - develop # develop 브랜치에 푸시할 때
-  pull_request:
-    branches:
-      - develop # develop 브랜치로 PR 날릴 때
 
 jobs:
-  # 빌드를 위한 Job
-  build:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:latest
-        env:
-          POSTGRES_USER: ${{ secrets.DB_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.DB_NAME }}
-        ports:
-          - 5432:5432
+  ci:
+    runs-on: ubuntu-22.04
 
     steps:
-      # 리포지토리 체크아웃
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      # Python 환경 설정
-      - name: Set up Python
-        uses: actions/setup-python@v3
+      # 캐시 삭제
+      - name: Clear cache
+        run: |
+          rm -rf ~/.cache/pip
+          rm -rf .tox      
+
+      # 체크아웃 해야 최신 코드를 가져옴
+      - name: Check out the codes
+        uses: actions/checkout@v4
         with:
-          python-version: '3.13'
-      # 의존성 설치
+          fetch-depth: '0'
+
+        # 파이썬 설치
+      - name: Setup python environment
+        id: setup-python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.12.6'
+
+        # 타임존 KST로 설정
+      - name: Set timezone to KST
+        run: |
+          sudo rm /etc/localtime
+          sudo ln -s /usr/share/zoneinfo/Asia/Seoul /etc/localtime
+
       - name: Install Poetry
         run: |
-          curl -sSL https://install.python-poetry.org | python3 - --version 1.8.5
-          export PATH="$HOME/.local/bin:$PATH"
+          curl -sSL curl -sSL https://install.python-poetry.org | python3 -
+          echo "${HOME}/.local/bin" >> $GITHUB_PATH
 
-      - name: Install dependencies using Poetry
-        run: |
-          poetry install
-          poetry show django  # Django가 제대로 설치되었는지 확인
+      - name: Install dependencies
+        run: | # poetry 자기 자신을 설치하지 않음
+          poetry install --no-root --no-cache
 
-      - name: Set up environment variables for dev
+      - name: Run black
         run: |
-          echo "ENV=dev" >> $GITHUB_ENV
-          mkdir -p .envs  # .envs 디렉토리 생성
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> $GITHUB_ENV
-          echo "DEBUG=${{ secrets.DEBUG_DEV }}" >> $GITHUB_ENV
-          echo "DB_HOST=${{ secrets.DB_HOST_DEV }}" >> $GITHUB_ENV
-          echo "DB_NAME=${{ secrets.DB_NAME }}" >> $GITHUB_ENV
-          echo "DB_USER=${{ secrets.DB_USER }}" >> $GITHUB_ENV
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> $GITHUB_ENV
-          echo "DB_PORT=${{ secrets.DB_PORT }}" >> $GITHUB_ENV
+          poetry run black --version
+          poetry run black . --check
+        # --check: 코드를 수정하지 않고 체크만 함
 
-      # 마이그레이션 실행
-      - name: Run migrations
+      - name: Run isort
         run: |
-          poetry run python manage.py migrate
-
-      - name: Run tests
-        run: |
-          poetry run python manage.py test
+          poetry run isort . --check --diff
+        # -diff: 달라진 점을 보여줌
