@@ -61,3 +61,6 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
 
     def __str__(self):
         return self.email
+
+    class Meta:
+        db_table = "users"
