@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 import os
-from os import environ
+import environ
 from pathlib import Path
 
 # Quick-start development settings - unsuitable for production
@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 env = environ.Env()
 
 # 사용할 환경 설정 파일 결정
-ENV_MODE = os.getenv("ENV", "")
+ENV_MODE = os.getenv("DJANGO_ENV", "")
 ENV_FILE = BASE_DIR / f".envs/{ENV_MODE}.env"
 
 # 환경 변수 파일 로드
@@ -84,6 +84,8 @@ WSGI_APPLICATION = "Dangnyang_Heroes.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+
+
 
 DATABASES = {
     "default": {

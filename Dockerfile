@@ -33,9 +33,7 @@ RUN poetry env info --path  # 가상환경 경로 확인
 # 9. Django와 관련된 의존성 설치 확인
 RUN poetry show  # 의존성 확인
 
-# 10. 정적 파일 모으기
-# RUN poetry run python manage.py collectstatic --noinput
 
 # 11. 실행 명령어 설정
-CMD ["poetry", "run", "gunicorn", "-b", "0.0.0.0:8000", "--timeout", "300", "Dangnyang_Heroes.wsgi:application"]
+CMD ["bash", "/app/scripts/run.sh"]
 
