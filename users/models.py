@@ -47,7 +47,9 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
     phone_number = models.CharField(max_length=20, null=False)
     user_type = models.CharField(max_length=20, choices=UserType.choices, null=False)
     profile_image = models.URLField(max_length=255, null=True, blank=True)
-    social_type = models.CharField(max_length=10, choices=SoialType.choices, null=False)
+    social_type = models.CharField(
+        max_length=10, choices=SocialType.choices, null=False
+    )
     social_id = models.CharField(mx_length=255, null=True, blank=True)
     is_email_verified = models.BooleanField(default=False)
 
