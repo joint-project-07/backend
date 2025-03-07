@@ -53,7 +53,6 @@ class Shelter(BaseModel):
     name = models.CharField(max_length=255, null=False)
     address = models.CharField(max_length=255, null=False)
     region = models.CharField(max_length=10, choices=RegionChoices.choices, null=False)
-    contact_number = models.CharField(max_length=20, null=False)
     shelter_type = models.CharField(
         max_length=20, choices=ShelterTypeChoices.choices, null=False
     )
