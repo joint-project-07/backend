@@ -35,17 +35,6 @@ class ShelterTypeChoices(models.TextChoices):
 class ShelterFileTypeChoices(models.TextChoices):
     PROFILE = "profile", "Profile"
     GENERAL = "general", "General"
-    BUSINESS_LICENSE = "business_license", "Business License"
-
-
-def shelter_images_path(instance, filename):
-    shelter_id = instance.shelter.id if instance.shelter.id else str(uuid.uuid4())
-    return f"shelters/{shelter_id}/images/{filename}w"
-
-
-def shelter_file_path(instance, filename):
-    shelter_id = instance.shelter.id if instance.shelter.id else str(uuid.uuid4())
-    return f"shelters/{shelter_id}/license/{filename}"
 
 
 class Shelter(BaseModel):
@@ -57,7 +46,8 @@ class Shelter(BaseModel):
         max_length=20, choices=ShelterTypeChoices.choices, null=False
     )
     business_registration_number = models.CharField(max_length=20, null=False)
-    business_license_file = models.FileField(upload_to=shelter_file_path, null=False)
+    business_license_file_url = models.CharField(max_length=500, null=False)
+    profile_image_url = models.CharField(max_length=500, null=True, blank=True)
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="shelter")
 
@@ -78,22 +68,10 @@ class ShelterImage(BaseModel):
         choices=ShelterFileTypeChoices.choices,
         default=ShelterFileTypeChoices.GENERAL,  # 기본값: 일반 이미지
     )
-    image = models.ImageField(upload_to=shelter_images_path, null=False)
+    image_url = models.CharField(max_length=500, null=False)
 
     def __str__(self):
         return f"{self.shelter.name} - {self.image_type} - Image {self.id}"
 
     class Meta:
         db_table = "shelters_images"
-
-
-class ShelterFile(BaseModel):
-    id = models.AutoField(primary_key=True)
-    shelter = models.ForeignKey(Shelter, on_delete=models.CASCADE, related_name="files")
-    file = models.FileField(upload_to=shelter_file_path, null=False)
-
-    def __str__(self):
-        return f"{self.shelter.name} - Business License"
-
-    class Meta:
-        db_table = "shelters_files"
