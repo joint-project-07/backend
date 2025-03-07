@@ -28,14 +28,13 @@ class UserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 
-class UserType(models.TextChoices):
-    VOLUNTEER = "volunteer", "Volunteer"
-    SHELTER_ADMIN = "shelter_admin", "Shelter Admin"
-
-
 class SocialType(models.TextChoices):
     EMAIL = "email", "Email"
     KAKAO = "kakao", "Kakao"
+
+
+def user_profile_image_path(instance, filename):
+    return f"users/{instance.id}/{filename}"
 
 
 class User(AbstractBaseUser, PermissionsMixin, BaseModel):
@@ -45,8 +44,9 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
     name = models.CharField(max_length=100, null=False)
     birth_date = models.DateField(null=True, blank=True)
     phone_number = models.CharField(max_length=20, null=False)
-    user_type = models.CharField(max_length=20, choices=UserType.choices, null=False)
-    profile_image = models.URLField(max_length=255, null=True, blank=True)
+    profile_image = models.ImageField(
+        upload_to=user_profile_image_path, null=True, blank=True
+    )
     social_type = models.CharField(
         max_length=10, choices=SocialType.choices, null=False
     )
@@ -55,11 +55,12 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    is_shelter = models.BooleanField(default=False)
 
     objects = UserManager()
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["name", "phone_number", "user_type"]
+    REQUIRED_FIELDS = ["name", "phone_number"]
 
     def __str__(self):
         return self.email
