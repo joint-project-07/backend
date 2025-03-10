@@ -50,9 +50,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "common",
     "volunteer_history",
     "volunteer_application",
+    "users",
+    "shelters",
 ]
 
 MIDDLEWARE = [
