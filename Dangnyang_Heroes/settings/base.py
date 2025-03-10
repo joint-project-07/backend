@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "applications",
     "users",
     "shelters",
+    "recruitments",
 ]
 
 MIDDLEWARE = [
