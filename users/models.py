@@ -40,10 +40,14 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
     name = models.CharField(max_length=100, null=False)
     birth_date = models.DateField(null=True, blank=True)
     contact_number = models.CharField(max_length=20, null=False)
-    profile_image = models.CharField(max_length=255, null=True, blank=True)  # ERD와 통일
+    profile_image = models.CharField(
+        max_length=255, null=True, blank=True
+    )  # ERD와 통일
     is_shelter = models.BooleanField(default=False)  # 보호소 관리자 여부
     kakao_login = models.BooleanField(default=False)  # ERD에 맞게 수정
-    provider_id = models.CharField(max_length=255, null=True, blank=True)  # ERD에 맞게 수정
+    provider_id = models.CharField(
+        max_length=255, null=True, blank=True
+    )  # ERD에 맞게 수정
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)  # Django 관리 권한

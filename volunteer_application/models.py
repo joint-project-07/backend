@@ -1,8 +1,8 @@
 from django.db import models
-from users.models import User
 from volunteer.models import VolunteerActivity
 
 from common.models import BaseModel
+from users.models import User
 
 
 class VolunteerApplication(BaseModel):
