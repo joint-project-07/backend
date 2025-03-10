@@ -33,8 +33,7 @@ services:
     # 컨테이너 이름 지정
 #    restart: always
     # 컨테이너 중단 시 자동 재시작
-    environment:
-      - DJANGO_ENV=dev
+
     depends_on:
       - db
     # db가 먼저 실행된 후 web이 시작됨
