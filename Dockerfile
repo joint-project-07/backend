@@ -30,7 +30,7 @@ COPY . .
 # 9. 가상환경 경로 확인 (옵션)
 RUN poetry env info --path  # 가상환경 경로 확인
 
-# 9. Django와 관련된 의존성 설치 확인
+# 10. Django와 관련된 의존성 설치 확인
 RUN poetry show  # 의존성 확인
 
 
