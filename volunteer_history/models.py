@@ -1,7 +1,7 @@
 from django.db import models
-from users.models import User
 
 from common.models import BaseModel
+from users.models import User
 from volunteer_application.models import VolunteerApplication
 
 
