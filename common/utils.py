@@ -9,7 +9,7 @@ MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
 
 # 이미지 확장자 검증
-def validate_image_image(file):
+def validate_image(file):
     file_extension = file.name.split(".")[-1].lower()
 
     if file_extension not in ALLOWED_IMAGE_EXTENSIONS:

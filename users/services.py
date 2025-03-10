@@ -1,11 +1,11 @@
 from django.core.files.storage import default_storage
 
-from common.utils import generate_user_profile_image_path, validate_image_image
+from common.utils import generate_user_profile_image_path, validate_image
 
 
 def upload_user_profile_image(user, file):
     # 파일 검증
-    validate_image_image(file)
+    validate_image(file)
 
     file_path = generate_user_profile_image_path(user.id, file.name)
 

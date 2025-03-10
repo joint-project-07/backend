@@ -4,7 +4,7 @@ from common.utils import (
     generate_shelter_image_path,
     generate_shelter_license_path,
     generate_shelter_profile_image_path,
-    validate_image_image,
+    validate_image,
     validate_license_file,
 )
 
@@ -13,7 +13,7 @@ from .models import ShelterFileTypeChoices, ShelterImage
 
 def upload_shelter_profile_image(shelter, file):
     # 파일 검증
-    validate_image_image(file)
+    validate_image(file)
 
     file_path = generate_shelter_profile_image_path(shelter.id, file.name)
 
@@ -40,7 +40,7 @@ def upload_shelter_images(shelter, files):
     image_urls = []
 
     for file in files:
-        validate_image_image(file)  # 파일 검증
+        validate_image(file)  # 파일 검증
 
         file_path = generate_shelter_image_path(shelter.id, file.name)
 
