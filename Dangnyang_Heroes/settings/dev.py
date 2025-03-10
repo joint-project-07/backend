@@ -1,29 +1,11 @@
-from datetime import timedelta
-
 from .base import *
 
 DEBUG = True
 
-REFRESH_TOKEN_COOKIE_SECURE = False
-
-# ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",")
-
-INSTALLED_APPS += [
-    "drf_spectacular",
-]
-
-SIMPLE_JWT = {
-    "AUTH_HEADER_TYPES": ("Bearer",),
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=300),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
-    "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": True,
-    "ALGORITHM": "HS256",
-    "SIGNING_KEY": SECRET_KEY,
-}
-
-REST_FRAMEWORK.update(
+# JWT 설정 (개발 환경에 맞게 변경)
+SIMPLE_JWT.update(
     {
-        "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+        "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+        "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     }
 )
