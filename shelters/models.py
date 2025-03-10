@@ -44,7 +44,6 @@ class Shelter(BaseModel):
     shelter_type = models.CharField(
         max_length=20, choices=ShelterTypeChoices.choices, null=False
     )
-    profile_image = models.CharField(max_length=255, null=True, blank=True)
     business_registration_number = models.CharField(max_length=20, null=False)
     business_registration_email = models.EmailField(max_length=255, null=False)
     business_license_file = models.CharField(max_length=255, null=True, blank=True)
