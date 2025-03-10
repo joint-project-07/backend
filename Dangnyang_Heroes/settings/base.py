@@ -148,3 +148,17 @@ STATICFILES_DIRS = []
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "users.User"
+
+AWS_ACCESS_KEY_ID = os.getenv("NCP_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("NCP_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME = os.getenv("NCP_BUCKET_NAME")
+AWS_S3_ENDPOINT_URL = (
+    "https://kr.object.ncloudstorage.com"  # NCP Object Storage 엔드포인트
+)
+AWS_S3_CUSTOM_DOMAIN = (
+    f"{AWS_STORAGE_BUCKET_NAME}.kr.object.ncloudstorage.com"  # 기본 도메인
+)
+
+DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+
+MEDIA_URL = "https://{AWS_S3_CUSTOM_DOMAIN}/"
