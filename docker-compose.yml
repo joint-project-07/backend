@@ -12,9 +12,9 @@ services:
     env_file:
       - .envs/dev.env
     environment:
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     # 개발환경에서 사용할 .env 파일
     ports:
       - "5432:5432"
