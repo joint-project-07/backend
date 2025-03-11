@@ -15,7 +15,6 @@ class ApplicationListCreateView(APIView):
     @extend_schema(
         summary="신청한 봉사 목록 조회",
         description = "현재 로그인한 사용자의 봉사 신청 목록을 조회합니다.",
-        responses={200: ApplicationSerializer(many=True)},
     )
     def get(self, request):
         applications = Application.objects.filter(user=request.user)
@@ -26,8 +25,6 @@ class ApplicationListCreateView(APIView):
     @extend_schema(
         summary="봉사 신청 생성",
         description="봉사 모집 공고에 대한 신청을 생성합니다.",
-        request=ApplicationCreateSerializer,
-        responses={201:ApplicationSerializer},
     )
     def post(self, request):
         serializer = ApplicationCreateSerializer(data=request.data, context={"request": request})
@@ -44,8 +41,6 @@ class ApplicationDetailView(APIView):
     @extend_schema(
         summary="봉사 신청 상세 조회",
         description="특정 봉사 신청 정보를 조회합니다.",
-        parameters=[OpenApiParameter(name="id", description="봉사 신청 ID", required=True, type=int)],
-        responses={200: ApplicationSerializer},
     )
     def get(self, request, pk):
         try:
@@ -60,8 +55,6 @@ class ApplicationDetailView(APIView):
     @extend_schema(
         summary="봉사 신청 취소",
         description="특정 봉사 신청을 취소(삭제)합니다.",
-        parameters=[OpenApiParameter(name="id", description="봉사 신청 ID", required=True, type=int)],
-        responses={204: None},
     )
     def delete(self, request, pk):
         try:
@@ -80,8 +73,6 @@ class ApplicationApproveRejectView(APIView):
     @extend_schema(
         summary="봉사 신청 승인",
         description="보호소 관리자가 특정 봉사 신청을 승인합니다.",
-        parameters=[OpenApiParameter(name="id", description="봉사 신청 ID", required=True, type=int)],
-        responses={200:ApplicationSerializer},
     )
     def post(self, request, pk):
         try:
@@ -104,9 +95,6 @@ class ApplicationRejectView(APIView):
     @extend_schema(
         summary="봉사 신청 거절",
         description="보호소 관리자가 특정 봉사 신청을 거절합니다.",
-        parameters=[OpenApiParameter(name="id", description="봉사 신청 ID", required=True, type=int)],
-        request={"application/json": {"rejected_reason": "string"}},
-        responses={200: ApplicationSerializer},
     )
     def post(self, request, pk):
         try:
