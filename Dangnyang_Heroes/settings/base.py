@@ -56,7 +56,7 @@ INSTALLED_APPS = [
     "users",
     "shelters",
     "recruitments",
-    "drf_spectacular",
+    "rest_framework_simplejwt",
 ]
 
 MIDDLEWARE = [

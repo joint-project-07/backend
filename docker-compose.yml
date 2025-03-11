@@ -52,8 +52,6 @@ services:
   nginx:
     image: nginx:latest
     container_name: dnh-nginx-container
-#    restart: always
-
     depends_on:
       - web
     ports:
