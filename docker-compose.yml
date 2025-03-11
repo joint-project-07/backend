@@ -33,6 +33,8 @@ services:
     # 컨테이너 이름 지정
 #    restart: always
     # 컨테이너 중단 시 자동 재시작
+    environment:
+      - DJANGO_ENV=${DJANGO_ENV}
 
     depends_on:
       - db
