@@ -1,11 +1,11 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from applications.models import Application
-from applications.serializers import ApplicationSerializer, ApplicationCreateSerializer
+from applications.serializers import ApplicationCreateSerializer, ApplicationSerializer
 
 
 class ApplicationListCreateView(APIView):
@@ -14,7 +14,7 @@ class ApplicationListCreateView(APIView):
     # 신청한 봉사 목록 조회
     @extend_schema(
         summary="신청한 봉사 목록 조회",
-        description = "현재 로그인한 사용자의 봉사 신청 목록을 조회합니다.",
+        description="현재 로그인한 사용자의 봉사 신청 목록을 조회합니다.",
     )
     def get(self, request):
         applications = Application.objects.filter(user=request.user)
@@ -27,10 +27,14 @@ class ApplicationListCreateView(APIView):
         description="봉사 모집 공고에 대한 신청을 생성합니다.",
     )
     def post(self, request):
-        serializer = ApplicationCreateSerializer(data=request.data, context={"request": request})
+        serializer = ApplicationCreateSerializer(
+            data=request.data, context={"request": request}
+        )
         if serializer.is_valid():
             application = serializer.save()
-            return Response(ApplicationSerializer(application).data, status=status.HTTP_201_CREATED)
+            return Response(
+                ApplicationSerializer(application).data, status=status.HTTP_201_CREATED
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -46,7 +50,10 @@ class ApplicationDetailView(APIView):
         try:
             application = Application.objects.get(pk=pk, user=request.user)
         except Application.DoesNotExist:
-            return Response({"detail": "해당 신청을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "해당 신청을 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         serializer = ApplicationSerializer(application)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -60,7 +67,10 @@ class ApplicationDetailView(APIView):
         try:
             application = Application.objects.get(pk=pk, user=request.user)
         except Application.DoesNotExist:
-            return Response({"detail": "해당 신청을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "해당 신청을 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         application.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -78,14 +88,21 @@ class ApplicationApproveRejectView(APIView):
         try:
             application = Application.objects.get(pk=pk)
         except Application.DoesNotExist:
-            return Response({"detail": "해당 신청을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "해당 신청을 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         if application.shelter.user != request.user:
-            return Response({"detail": "승인 권한이 없습니다."}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"detail": "승인 권한이 없습니다."}, status=status.HTTP_403_FORBIDDEN
+            )
 
         application.status = "approved"
         application.save()
-        return Response(ApplicationSerializer(application).data, status=status.HTTP_200_OK)
+        return Response(
+            ApplicationSerializer(application).data, status=status.HTTP_200_OK
+        )
 
 
 class ApplicationRejectView(APIView):
@@ -100,14 +117,21 @@ class ApplicationRejectView(APIView):
         try:
             application = Application.objects.get(pk=pk)
         except Application.DoesNotExist:
-            return Response({"detail": "해당 신청을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "해당 신청을 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         if application.shelter.user != request.user:
-            return Response({"detail": "거절 권한이 없습니다."}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"detail": "거절 권한이 없습니다."}, status=status.HTTP_403_FORBIDDEN
+            )
 
         rejected_reason = request.data("rejected_reason", "")
         application.status = "rejected"
         application.rejected_reason = rejected_reason
         application.save()
 
-        return Response(ApplicationSerializer(application).data, status=status.HTTP_200_OK)
+        return Response(
+            ApplicationSerializer(application).data, status=status.HTTP_200_OK
+        )

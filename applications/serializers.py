@@ -1,9 +1,9 @@
 from rest_framework import serializers
 
 from applications.models import Application
-from users.serializers import UserSerializer
 from recruitments.serializers import RecruitmentSerializer
 from shelters.serializers import ShelterSerializer
+from users.serializers import UserSerializer
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
