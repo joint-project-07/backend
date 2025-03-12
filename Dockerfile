@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y \
 COPY pyproject.toml poetry.lock /app/
 
 # 7. Poetry로 의존성 설치
-RUN poetry install --no-dev
+RUN poetry install --no-root
 
 # 8. 프로젝트 파일 복사
 COPY . .
