@@ -30,22 +30,22 @@ class SignupSerializer(serializers.ModelSerializer):
         ]  # 포함할 필드
 
     def validate(self, data):
-        # 비밀번호와 비밀번호 확인 일치하는지 검증
         if data["password"] != data["password_confirm"]:
             raise serializers.ValidationError(
-                {"message": "비밀번호와 비밀번호 확인이 일치하지 않습니다."}
+                {
+                    "code": 400,
+                    "message": "비밀번호와 비밀번호 확인이 일치하지 않습니다.",
+                }
             )
 
-        # 이메일 중복 검사
         if User.objects.filter(email=data["email"]).exists():
             raise serializers.ValidationError(
-                {"message": "이미 사용 중인 이메일입니다."}
+                {"code": 409, "message": "이미 사용 중인 이메일입니다."}
             )
 
-        # 전화번호 중복 검사
         if User.objects.filter(contact_number=data["contact_number"]).exists():
             raise serializers.ValidationError(
-                {"message": "이미 등록된 전화번호 입니다."}
+                {"code": 409, "message": "이미 등록된 전화번호입니다."}
             )
 
         return data
@@ -84,7 +84,9 @@ class ShelterSignupSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user_data = validated_data.pop("user")  # User 데이터만 분리해서
-        user = User.objects.create(**user_data)  # User 객체 생성
+        user = User.objects.create(
+            **user_data, is_shelter=True
+        )  # 보호소 관리자인 경우 is_shelter=True로 설정
 
         shelter_data = validated_data
         shelter = Shelter.objects.create(
@@ -106,13 +108,15 @@ class EmailLoginSerializer(serializers.Serializer):
         # 이메일로 사용자 조회함
         user = User.objects.filter(email=email).first()
         if not user:
-            raise serializers.ValidationError({"message": "사용자를 찾을 수 없습니다."})
+            raise serializers.ValidationError(
+                {"code": 404, "message": "사용자를 찾을 수 없습니다."}
+            )
 
         # 인증 (비밀번호 확인)
         user = authenticate(email=email, password=password)
         if not user:
             raise serializers.ValidationError(
-                {"message": "비밀번호가 올바르지 않습니다."}
+                {"code": 401, "message": "비밀번호가 올바르지 않습니다."}
             )
 
         # JWT Token 발급
@@ -126,38 +130,52 @@ class EmailLoginSerializer(serializers.Serializer):
         }
 
 
-# 🍒카카오 로그인(봉사자)
+# 🍒카카오 로그인과 회원가입
 class KakaoLoginSerializer(serializers.Serializer):
     access_token = (
         serializers.CharField()
-    )  # 사용자가 카카오 로그인을 통해 받은 -> 사용자의 카카오 정보를 요청 가능
+    )  # 사용자가 카카오 로그인을 통해 받은 access_token
 
     def validate(self, data):
-        access_token = data.get("access_token")  # 카카오 서버에서 사용자 정보 가져옴
+        access_token = data.get("access_token")
 
         # 카카오 사용자 정보 요청
-        user_info_url = "https://kapi.kakao.com/v2/user/me"  # GET 요청
+        user_info_url = "https://kapi.kakao.com/v2/user/me"
         headers = {"Authorization": f"Bearer {access_token}"}
         response = requests.get(user_info_url, headers=headers)
 
-        if response.status_code != 200:  # 200 OK가 아니면
+        if response.status_code != 200:
             raise ValidationError(
-                {"message": "카카오 사용자 정보를 가져오는 데 실패했습니다."}
+                {
+                    "code": 500,
+                    "message": "카카오 사용자 정보를 가져오는 데 실패했습니다.",
+                }
             )
 
-        user_info = response.json()  # 카카오에서 받은 응답 JSON 형태로
-        provider_id = str(user_info.get("id"))  # 카카오 고유 사용자 ID 추출함
+        user_info = response.json()
+        provider_id = str(user_info.get("id"))  # 카카오 고유 사용자 ID 추출
 
-        # 카카오 로그인한 사용자가 이미 등록되었는지 확인함
-        user = User.objects.filter(
-            provider_id=provider_id
-        ).first()  # 받은 provider_id가 기존에 등록된 provider_id랑 일치하는지
-        if not user:
-            raise ValidationError(
-                {"message": "소셜 계정이 등록되지 않았습니다."}
-            )  # 일치하지 않으면
+        # 카카오 로그인한 사용자가 이미 등록되었는지 확인
+        user = User.objects.filter(provider_id=provider_id).first()
 
-        # JWT 토큰 발급 (로그인 후 사용자가 인증된 상태로 이용가능하게)
+        if not user:  # 사용자 없으면 회원가입 처리
+            nickname = user_info.get("properties", {}).get("nickname", "NoName")
+            email = user_info.get("kakao_account", {}).get("email", None)
+            if not email:
+                raise ValidationError(
+                    {"code": 400, "message": "이메일 정보가 필요합니다."}
+                )
+
+            # 새로운 사용자 생성
+            user = User.objects.create(
+                email=email,  # 카카오에서 받은 이메일
+                name=nickname,  # 카카오에서 받은 닉네임
+                provider_id=provider_id,  # 카카오 고유 사용자 ID
+                is_shelter=False,  # 기본값
+                kakao_login=True,  # 카카오 로그인으로 가입한 사용자임을 표시
+            )
+
+        # JWT 토큰 발급
         refresh = RefreshToken.for_user(user)
         return {
             "code": 200,
@@ -262,11 +280,11 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         # 이메일과 연락처는 이미 read_only=True로 설정되어있어서 수정하려고 하면 오류 발생시켜버리기
         if "email" in validated_data:
             raise serializers.ValidationError(
-                {"message": "이메일은 수정할 수 없습니다."}
+                {"code": 400, "message": "이메일은 수정할 수 없습니다."}
             )
         if "contact_number" in validated_data:
             raise serializers.ValidationError(
-                {"message": "전화번호는 수정할 수 없습니다."}
+                {"code": 400, "message": "전화번호는 수정할 수 없습니다."}
             )
 
         # 나머지 데이터만(이메일,전번 제외 나머지) 업데이트
