@@ -1,9 +1,21 @@
 from rest_framework import serializers
 
 from applications.models import Application
-from recruitments.serializers import RecruitmentSerializer
-from shelters.serializers import ShelterSerializer
+from recruitments.models import Recruitment
+from shelters.models import Shelter
 from users.serializers import UserSerializer
+
+
+class RecruitmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recruitment
+        fields = ["id", "date", "status"]
+
+
+class ShelterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Shelter
+        fields = ["id", "name", "region", "address"]
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
