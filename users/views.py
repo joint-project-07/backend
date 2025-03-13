@@ -32,7 +32,7 @@ class SignupView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(
-                {"code": 201, "message": "회원가입이 완료되었습니다."},
+                {"message": "회원가입이 완료되었습니다."},
                 status=status.HTTP_201_CREATED,
             )
         # 유효성 검사 실패 시, 오류 반환
@@ -91,7 +91,7 @@ class ShelterSignupView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(
-                {"code": 201, "message": "보호소 회원가입이 완료되었습니다."},
+                {"message": "보호소 회원가입이 완료되었습니다."},
                 status=status.HTTP_201_CREATED,
             )
         # 유효성 검사 실패 시, 오류 반환
@@ -126,7 +126,7 @@ class EmailLoginView(APIView):
         if serializer.is_valid():
             # 로그인 성공 시, 시리얼라이저에 작성된 validated_data 반환
             return Response(
-                {"code": 200, "message": "로그인 성공", **serializer.validated_data},
+                {"message": "로그인 성공", **serializer.validated_data},
                 status=status.HTTP_200_OK,
             )
 
@@ -257,7 +257,6 @@ class UserView(APIView):
 
         # 원하는 형식으로 응답 데이터
         response_data = {
-            "code": 200,
             "user": serializer.data,  # user 정보는 시리얼라이저에서 반환된 데이터
         }
         return Response(response_data, status=status.HTTP_200_OK)
@@ -280,7 +279,6 @@ class UserView(APIView):
             updated_data = UserSerializer(updated_user).data
             return Response(
                 {
-                    "code": 200,
                     "message": "사용자 정보가 성공적으로 수정되었습니다.",
                     "user": updated_data,
                 },
@@ -307,7 +305,7 @@ class LogoutView(APIView):
             refresh_token = request.data.get("refresh_token")
             if not refresh_token:
                 return Response(
-                    {"code": 400, "message": "refresh_token이 필요합니다."},
+                    {"message": "refresh_token이 필요합니다."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -317,11 +315,9 @@ class LogoutView(APIView):
 
             # 성공 응답
             return Response(
-                {"code": 200, "message": "성공적으로 로그아웃 되었습니다."},
+                {"message": "성공적으로 로그아웃 되었습니다."},
                 status=status.HTTP_200_OK,
             )
         # 예기치 않은 예외들을 처리
         except Exception as e:
-            return Response(
-                {"code": 400, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
