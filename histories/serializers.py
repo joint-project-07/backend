@@ -1,8 +1,8 @@
 from rest_framework import serializers
 
 from histories.models import History
-from shelters.models import Shelter
 from recruitments.models import Recruitment
+from shelters.models import Shelter
 
 
 class ShelterSerializer(serializers.ModelSerializer):
