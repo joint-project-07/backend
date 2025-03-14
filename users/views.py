@@ -83,6 +83,7 @@ class ShelterSignupView(APIView):
     🍒보호소 회원가입 API
     """
 
+    @extend_schema(request=SignupSerializer)
     def post(self, request):
         # 시리얼라이저에 요청 데이터 전달
         serializer = ShelterSignupSerializer(data=request.data)
@@ -120,6 +121,7 @@ class EmailLoginView(APIView):
     🍒이메일 로그인 API
     """
 
+    @extend_schema(request=EmailLoginSerializer)
     def post(self, request):
         serializer = EmailLoginSerializer(data=request.data)
 
@@ -150,6 +152,7 @@ class KakaoLoginView(APIView):
     🍒 카카오 로그인과 회원가입API
     """
 
+    @extend_schema(request=KakaoLoginSerializer)
     def post(self, request):
         # 카카오 로그인 시리얼라이저를 통해 요청 데이터 검증
         serializer = KakaoLoginSerializer(data=request.data)
@@ -182,6 +185,7 @@ class FindEmailView(APIView):
     🍒 아이디 찾기 API
     """
 
+    @extend_schema(request=FindEmailSerializer)
     def post(self, request):
         # 아이디 찾기 시리얼라이저를 통해 요청 데이터 검증
         serializer = FindEmailSerializer(data=request.data)
@@ -213,6 +217,7 @@ class ResetPasswordView(APIView):
     🍒 비밀번호 재설정 API
     """
 
+    @extend_schema(request=ResetPasswordSerializer)
     def post(self, request):
         serializer = ResetPasswordSerializer(data=request.data)
 
@@ -246,8 +251,10 @@ class UserView(APIView):
     🍒 사용자 정보 조회/수정 API
     """
 
-    permission_classes = [IsAuthenticated]  # 인증된 사용자만 접근 가능
+    permission_classes = [IsAuthenticated]
 
+    # 인증된 사용자만 접근 가능
+    @extend_schema(request=UserSerializer)
     def get(self, request):
         # 인증된 사용자 정보 가져오기
         user = request.user
@@ -299,6 +306,7 @@ class LogoutView(APIView):
     🍒 로그아웃 API
     """
 
+    @extend_schema()
     def post(self, request):
         # 사용자 인증 정보 확인 (Authorization 헤더에서 토큰 추출)
         try:
