@@ -83,7 +83,7 @@ class ShelterSignupView(APIView):
     🍒보호소 회원가입 API
     """
 
-    @extend_schema(request=SignupSerializer)
+    @extend_schema(request=ShelterSignupSerializer)
     def post(self, request):
         # 시리얼라이저에 요청 데이터 전달
         serializer = ShelterSignupSerializer(data=request.data)
