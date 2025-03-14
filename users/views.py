@@ -56,7 +56,7 @@ class SignupView(APIView):
                 elif "비밀번호와 비밀번호 확인이 일치하지 않습니다." in messages:
                     code = status.HTTP_400_BAD_REQUEST  # 적절한 코드로 조정
 
-            return Response({"errors": errors}, status=code)
+            return Response(errors, status=code)
 
 
 class EmailCheckView(APIView):
@@ -76,7 +76,7 @@ class EmailCheckView(APIView):
 
         # 이메일 중복 시 오류 반환
         return Response(
-            {"errors": serializer.errors},
+            serializer.errors,
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -138,7 +138,7 @@ class ShelterSignupView(APIView):
                 elif "비밀번호와 비밀번호 확인이 일치하지 않습니다." in messages:
                     code = status.HTTP_400_BAD_REQUEST  # 적절한 코드로 조정
 
-            return Response({"errors": errors}, status=code)
+            return Response(errors, status=code)
 
 
 class EmailLoginView(APIView):
@@ -170,7 +170,7 @@ class EmailLoginView(APIView):
         elif "password" in errors:
             code = status.HTTP_401_UNAUTHORIZED  # 비밀번호가 올바르지 않으면
 
-        return Response({"errors": errors}, status=code)
+        return Response(errors, status=code)
 
 
 class KakaoLoginView(APIView):
@@ -204,7 +204,7 @@ class KakaoLoginView(APIView):
             elif "이메일 정보가 필요합니다." in errors.get("message", []):
                 code = status.HTTP_400_BAD_REQUEST
 
-            return Response({"errors": errors}, status=code)
+            return Response(errors, status=code)
 
 
 class FindEmailView(APIView):
@@ -237,7 +237,7 @@ class FindEmailView(APIView):
             elif "이메일 정보가 없습니다." in errors.get("message", []):
                 code = status.HTTP_400_BAD_REQUEST
 
-            return Response({"errors": errors}, status=code)
+            return Response(errors, status=code)
 
 
 class ResetPasswordView(APIView):
@@ -272,7 +272,7 @@ class ResetPasswordView(APIView):
             elif "전송에 실패했습니다." in errors.get("message", []):
                 code = status.HTTP_500_INTERNAL_SERVER_ERROR
 
-            return Response({"errors": errors}, status=code)
+            return Response(errors, status=code)
 
 
 class ChangePasswordView(APIView):
@@ -296,9 +296,7 @@ class ChangePasswordView(APIView):
                 status=status.HTTP_200_OK,
             )
 
-        return Response(
-            {"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
-        )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserView(APIView):
@@ -354,7 +352,7 @@ class UserView(APIView):
         # 기본 상태 코드 400으로 설정
         if errors:
             code = status.HTTP_400_BAD_REQUEST
-            return Response({"errors": errors}, status=code)
+            return Response(errors, status=code)
 
 
 class LogoutView(APIView):
