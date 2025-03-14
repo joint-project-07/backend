@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     EmailCheckView,
+    EmailConfirmationView,
     EmailLoginView,
     FindEmailView,
     KakaoLoginView,
@@ -22,4 +23,9 @@ urlpatterns = [
     path("me/", UserView.as_view(), name="me"),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("email-check/", EmailCheckView.as_view(), name="email-check"),
+    path(
+        "email-confirmation/",
+        EmailConfirmationView.as_view(),
+        name="email-confirmation",
+    ),
 ]

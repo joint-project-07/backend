@@ -1,8 +1,12 @@
+from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
+from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites import requests
 from django.core.mail import send_mail
+from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
+from django.utils.http import urlsafe_base64_encode
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -70,6 +74,41 @@ class EmailCheckSerializer(serializers.Serializer):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("이미 사용 중인 이메일입니다.")
         return value
+
+
+# 🍒 이메일 인증 확인
+class EmailConfirmationSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        # 이미 등록된 이메일은 다시 인증할 수 없음
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("이미 사용 중인 이메일입니다.")
+        return value
+
+    def send_confirmation_email(self, user):
+        # 인증을 위한 URL 생성
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(str(user.pk).encode()).decode()
+
+        # 이메일 내용
+        subject = "이메일 인증을 완료해 주세요."
+        message = render_to_string(
+            "email/confirmation_email.html",
+            {
+                "user": user,
+                "uid": uid,
+                "token": token,
+            },
+        )
+
+        send_mail(
+            subject,
+            message,
+            settings.EMAIL_HOST_USER,  # 발신자 이메일
+            [user.email],  # 수신자 이메일
+            fail_silently=False,
+        )
 
 
 # 🍒보호소 회원가입
@@ -273,7 +312,7 @@ class UserSerializer(serializers.ModelSerializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["name", "birth_date", "contact_number", "profile_image"]
+        fields = ["name", "contact_number", "profile_image"]
         read_only_fields = ["email", "contact_number"]  # 이메일과 전화번호는 수정 불가
 
     def update(self, instance, validated_data):

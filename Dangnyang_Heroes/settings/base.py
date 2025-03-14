@@ -170,6 +170,17 @@ REST_FRAMEWORK = {
     ),
 }
 
+# 이메일 설정
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")  # 예시로 Gmail을 사용
+EMAIL_PORT = 587  # Gmail의 기본 SMTP 포트
+EMAIL_USE_TLS = True  # TLS 사용
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")  # 이메일 발송자 (환경변수로 설정)
+EMAIL_HOST_PASSWORD = os.getenv(
+    "EMAIL_HOST_PASSWORD"
+)  # 이메일 비밀번호 (환경변수로 설정)
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER  # 기본 발신자 이메일
+
 
 AWS_ACCESS_KEY_ID = os.getenv("NCP_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("NCP_SECRET_ACCESS_KEY")
