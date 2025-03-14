@@ -1,9 +1,7 @@
 from rest_framework import serializers
 
 from histories.models import History
-
 from recruitments.models import Recruitment
-
 from shelters.models import Shelter
 
 
@@ -29,7 +27,6 @@ class HistorySerializer(serializers.ModelSerializer):
         fields = ["id", "shelter", "recruitment", "rating"]
 
 
-
 class HistoryRatingSerializer(serializers.ModelSerializer):
     rating = serializers.IntegerField(min_value=1, max_value=5)
 
@@ -37,4 +34,3 @@ class HistoryRatingSerializer(serializers.ModelSerializer):
         model = History
 
         fields = ["id", "rating"]
-
