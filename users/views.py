@@ -39,24 +39,7 @@ class SignupView(APIView):
                 status=status.HTTP_201_CREATED,
             )
         # 유효성 검사 실패 시, 오류 반환
-        errors = serializer.errors
-
-        # errors에서 code가 없으면 기본적으로 400 설정
-        # 여기서는 각 필드에 맞는
-        if errors:
-            # HTTP 상태 코드 처리
-            code = status.HTTP_400_BAD_REQUEST  # 기본 400으로 설정
-
-            # 코드 처리: 각 필드에 대해서 코드 지정
-            for field, messages in errors.items():
-                if "이미 등록된 전화번호입니다." in messages:
-                    code = status.HTTP_409_CONFLICT
-                elif "이미 사용 중인 이메일입니다." in messages:
-                    code = status.HTTP_409_CONFLICT
-                elif "비밀번호와 비밀번호 확인이 일치하지 않습니다." in messages:
-                    code = status.HTTP_400_BAD_REQUEST  # 적절한 코드로 조정
-
-            return Response(errors, status=code)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class EmailCheckView(APIView):
@@ -121,24 +104,7 @@ class ShelterSignupView(APIView):
                 status=status.HTTP_201_CREATED,
             )
         # 유효성 검사 실패 시, 오류 반환
-        errors = serializer.errors
-
-        # errors에서 code가 없으면 기본적으로 400 설정
-        # 여기서는 각 필드에 맞는
-        if errors:
-            # HTTP 상태 코드 처리
-            code = status.HTTP_400_BAD_REQUEST  # 기본 400으로 설정
-
-            # 코드 처리: 각 필드에 대해서 코드 지정
-            for field, messages in errors.items():
-                if "이미 등록된 전화번호입니다." in messages:
-                    code = status.HTTP_409_CONFLICT
-                elif "이미 사용 중인 이메일입니다." in messages:
-                    code = status.HTTP_409_CONFLICT
-                elif "비밀번호와 비밀번호 확인이 일치하지 않습니다." in messages:
-                    code = status.HTTP_400_BAD_REQUEST  # 적절한 코드로 조정
-
-            return Response(errors, status=code)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class EmailLoginView(APIView):
@@ -157,20 +123,8 @@ class EmailLoginView(APIView):
                 {"message": "로그인 성공", **serializer.validated_data},
                 status=status.HTTP_200_OK,
             )
-
         # 유효성 검사 실패 시, 오류 반환
-        errors = serializer.errors
-
-        # errors에서 code가 있으면 그 값을 상태 코드로 설정
-        code = status.HTTP_400_BAD_REQUEST  # 기본 400 설정
-
-        # 각 필드의 에러에 대해 HTTP 상태 코드를 설정
-        if "email" in errors:
-            code = status.HTTP_404_NOT_FOUND  # 사용자를 찾을 수 없을 경우
-        elif "password" in errors:
-            code = status.HTTP_401_UNAUTHORIZED  # 비밀번호가 올바르지 않으면
-
-        return Response(errors, status=code)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class KakaoLoginView(APIView):
@@ -188,23 +142,8 @@ class KakaoLoginView(APIView):
         if serializer.is_valid():
             # 유효성 검사를 통과하면 validated_data에 접근하여 JWT 토큰 반환
             return Response(serializer.validated_data, status=status.HTTP_200_OK)
-
         # 유효성 검사 실패 시, 오류 반환
-        errors = serializer.errors
-
-        # 상태 코드 처리: 필드별 오류에 대해 적절한 HTTP 상태 코드 설정
-        if errors:
-            code = status.HTTP_400_BAD_REQUEST  # 기본 400으로 설정
-
-            # 코드 처리: 각 필드에 대해서 코드 지정
-            if "카카오 사용자 정보를 가져오는 데 실패했습니다." in errors.get(
-                "message", []
-            ):
-                code = status.HTTP_500_INTERNAL_SERVER_ERROR
-            elif "이메일 정보가 필요합니다." in errors.get("message", []):
-                code = status.HTTP_400_BAD_REQUEST
-
-            return Response(errors, status=code)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class FindEmailView(APIView):
@@ -224,20 +163,7 @@ class FindEmailView(APIView):
             return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
         # 유효성 검사 실패 시, 오류 반환
-        errors = serializer.errors
-
-        # 오류 메시지와 상태 코드 처리
-        if errors:
-            # 기본 상태 코드 400 설정
-            code = status.HTTP_400_BAD_REQUEST
-
-            # 오류 메시지에 따라 상태 코드 조정
-            if "사용자를 찾을 수 없습니다." in errors.get("message", []):
-                code = status.HTTP_404_NOT_FOUND
-            elif "이메일 정보가 없습니다." in errors.get("message", []):
-                code = status.HTTP_400_BAD_REQUEST
-
-            return Response(errors, status=code)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ResetPasswordView(APIView):
@@ -256,23 +182,8 @@ class ResetPasswordView(APIView):
                 serializer.validated_data,  # 유효한 데이터를 그대로 반환
                 status=status.HTTP_200_OK,
             )
-
         # 유효성 검사 실패 시, 오류 반환
-        errors = serializer.errors
-
-        # 기본 상태 코드 400으로 설정
-        if errors:
-            # 상태 코드 조정
-            code = status.HTTP_400_BAD_REQUEST
-
-            if "사용자를 찾을 수 없습니다." in errors.get("message", []):
-                code = status.HTTP_404_NOT_FOUND
-            elif "이메일이 일치하지 않습니다." in errors.get("message", []):
-                code = status.HTTP_400_BAD_REQUEST
-            elif "전송에 실패했습니다." in errors.get("message", []):
-                code = status.HTTP_500_INTERNAL_SERVER_ERROR
-
-            return Response(errors, status=code)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ChangePasswordView(APIView):
@@ -345,14 +256,8 @@ class UserView(APIView):
                 },
                 status=status.HTTP_200_OK,
             )
-
         # 유효성 검사 실패 시, 오류 반환
-        errors = serializer.errors
-
-        # 기본 상태 코드 400으로 설정
-        if errors:
-            code = status.HTTP_400_BAD_REQUEST
-            return Response(errors, status=code)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class LogoutView(APIView):
