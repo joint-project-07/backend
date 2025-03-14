@@ -23,6 +23,7 @@ class HistorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = History
+
         fields = ["id", "shelter", "recruitment", "rating"]
 
 
@@ -31,4 +32,5 @@ class HistoryRatingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = History
+
         fields = ["id", "rating"]
