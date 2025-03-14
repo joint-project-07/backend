@@ -1,6 +1,6 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -19,6 +19,7 @@ from .serializers import (
 
 
 class SignupView(APIView):
+    permission_classes = [AllowAny]
     """
     🍒봉사자 회원가입 API
     """
@@ -79,6 +80,7 @@ class EmailCheckView(APIView):
 
 
 class ShelterSignupView(APIView):
+    permission_classes = [AllowAny]
     """
     🍒보호소 회원가입 API
     """
@@ -117,6 +119,7 @@ class ShelterSignupView(APIView):
 
 
 class EmailLoginView(APIView):
+    permission_classes = [AllowAny]
     """
     🍒이메일 로그인 API
     """
@@ -148,6 +151,7 @@ class EmailLoginView(APIView):
 
 
 class KakaoLoginView(APIView):
+    permission_classes = [AllowAny]
     """
     🍒 카카오 로그인과 회원가입API
     """
@@ -181,6 +185,7 @@ class KakaoLoginView(APIView):
 
 
 class FindEmailView(APIView):
+    permission_classes = [AllowAny]
     """
     🍒 아이디 찾기 API
     """
@@ -213,6 +218,7 @@ class FindEmailView(APIView):
 
 
 class ResetPasswordView(APIView):
+    permission_classes = [AllowAny]
     """
     🍒 비밀번호 재설정 API
     """
