@@ -7,6 +7,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from .serializers import (
     EmailCheckSerializer,
+    EmailConfirmationSerializer,
     EmailLoginSerializer,
     FindEmailSerializer,
     KakaoLoginSerializer,
@@ -77,6 +78,27 @@ class EmailCheckView(APIView):
             {"errors": serializer.errors},
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+
+class EmailConfirmationView(APIView):
+    permission_classes = [AllowAny]
+    """
+    🍒이메일 인증 확인 API
+    """
+
+    @extend_schema(request=EmailConfirmationSerializer)
+    def post(self, request):
+        serializer = EmailConfirmationSerializer(data=request.data)
+
+        if serializer.is_valid():
+            email = serializer.validated_data["email"]
+            serializer.send_confirmation_email(email)
+            return Response(
+                {"message": "이메일 인증을 위한 링크가 전송되었습니다."},
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ShelterSignupView(APIView):
@@ -274,6 +296,7 @@ class UserView(APIView):
         }
         return Response(response_data, status=status.HTTP_200_OK)
 
+    @extend_schema(request=UserUpdateSerializer)
     def put(self, request):
         # 인증된 사용자 정보 가져오기
         user = request.user
