@@ -5,8 +5,8 @@ DEBUG = False
 # JWT 설정 (프로덕션 환경에 맞게 변경)
 SIMPLE_JWT.update(
     {
-        "ACCESS_TOKEN_LIFETIME": timedelta(minutes=300),
-        "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+        "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+        "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     }
 )
 

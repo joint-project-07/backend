@@ -9,7 +9,7 @@ from users.serializers import UserSerializer
 class RecruitmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recruitment
-        fields = ["id", "date", "status"]
+        fields = ["id", "date", "start_time", "end_time", "status"]
 
 
 class ShelterSerializer(serializers.ModelSerializer):
@@ -25,7 +25,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Application
-        fields = "__all__"
+        fields = ["id", "user", "recruitment", "shelter", "status", "rejected_reason"]
 
 
 class ApplicationCreateSerializer(serializers.ModelSerializer):
@@ -38,3 +38,7 @@ class ApplicationCreateSerializer(serializers.ModelSerializer):
         user = request.user
         application = Application.objects.create(user=user, **validated_data)
         return application
+
+
+class ApplicationRejectSerializer(serializers.Serializer):
+    rejected_reason = serializers.CharField(max_length=255, required=True)

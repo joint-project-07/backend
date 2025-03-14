@@ -1,3 +1,8 @@
 from django.contrib import admin
 
-# Register your models here.
+from recruitments.models import Recruitment
+
+
+@admin.register(Recruitment)
+class RecruitmentAdmin(admin.ModelAdmin):
+    pass

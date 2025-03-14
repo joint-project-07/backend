@@ -14,7 +14,10 @@ class HistoryAPIView(APIView):
     @extend_schema(
         summary="봉사활동 이력 조회",
         description="봉사활동 이력을 조회합니다.",
-        responses={200: HistorySerializer(many=True)},
+        responses={
+            200: HistorySerializer(many=True),
+            404: {"example": {"detail": "완료한 봉사활동 기록이 없습니다."}},
+        },
     )
     def get(self, request):
         histories = History.objects.filter(user=request.user)
@@ -36,8 +39,7 @@ class HistoryRatingAPIView(APIView):
         description="봉사활동에 대한 만족도 평가를 1 ~ 5 까지 등록합니다.",
         responses={
             200: HistoryRatingSerializer,
-            400: {"description": "잘못된 평가 값"},
-            404: {"description": "해당 봉사 이력이 없음"},
+            404: {"example": {"detail": "해당 봉사 이력을 찾을 수 없습니다."}},
         },
     )
     def post(self, request, history_id):
