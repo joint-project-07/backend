@@ -26,13 +26,13 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SECURITY_DEFINITIONS": {
-        "Bearer": {"type": "http", "scheme": "bearer",'bearerFormat': "JWT"}
+        "Bearer": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
     },
-    'SWAGGER_UI_SETTINGS': {
-        'persistAuthorization': True,  # 인증 정보 유지
+    "SWAGGER_UI_SETTINGS": {
+        "persistAuthorization": True,  # 인증 정보 유지
     },
-    'AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    "AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
     # OTHER SETTINGS
 }
