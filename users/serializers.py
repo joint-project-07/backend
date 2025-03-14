@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth import authenticate
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.hashers import check_password, make_password
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites import requests
 from django.core.mail import send_mail
@@ -254,7 +255,7 @@ class FindEmailSerializer(serializers.Serializer):
         return {"email": user.email}
 
 
-# 🍒 비밀번호 재설정
+# 🍒 임시비밀번호
 class ResetPasswordSerializer(serializers.Serializer):
     name = serializers.CharField()
     email = serializers.EmailField()
@@ -299,6 +300,30 @@ class ResetPasswordSerializer(serializers.Serializer):
             )
 
         return {"message": "임시 비밀번호가 이메일로 전송되었습니다."}
+
+
+# 🍒비밀번호 변경
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
+
+    def validate_current_password(self, value):
+        """현재 비밀번호 확인"""
+        user = self.context["request"].user
+        if not check_password(value, user.password):
+            raise serializers.ValidationError("현재 비밀번호가 올바르지 않습니다.")
+        return value
+
+    def validate_new_password(self, value):
+        """비밀번호 정책 검증"""
+        validate_password(value)  # Django 기본 비밀번호 검증 사용
+        return value
+
+    def update(self, instance, validated_data):
+        """비밀번호 변경 처리"""
+        instance.set_password(validated_data["new_password"])
+        instance.save()
+        return instance
 
 
 # 🍒사용자 정보 조회

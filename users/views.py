@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .serializers import (
+    ChangePasswordSerializer,
     EmailCheckSerializer,
     EmailConfirmationSerializer,
     EmailLoginSerializer,
@@ -242,7 +243,7 @@ class FindEmailView(APIView):
 class ResetPasswordView(APIView):
     permission_classes = [AllowAny]
     """
-    🍒 비밀번호 재설정 API
+    🍒 임시비밀번호  API
     """
 
     @extend_schema(request=ResetPasswordSerializer)
@@ -272,6 +273,32 @@ class ResetPasswordView(APIView):
                 code = status.HTTP_500_INTERNAL_SERVER_ERROR
 
             return Response({"errors": errors}, status=code)
+
+
+class ChangePasswordView(APIView):
+    """
+    🍒 비밀번호 변경 API
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(request=ChangePasswordSerializer)
+    def put(self, request):
+        user = request.user
+        serializer = ChangePasswordSerializer(
+            user, data=request.data, context={"request": request}
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {"message": "비밀번호가 성공적으로 변경되었습니다."},
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(
+            {"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class UserView(APIView):
