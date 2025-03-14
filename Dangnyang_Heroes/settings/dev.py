@@ -17,15 +17,22 @@ SIMPLE_JWT.update(
     }
 )
 
-REST_FRAMEWORK = {
-    # YOUR SETTINGS
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-}
+REST_FRAMEWORK["DEFAULT_SCHEMA_CLASS"] = "drf_spectacular.openapi.AutoSchema"
+
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Your Project API",
     "DESCRIPTION": "Your project description",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
+    },
+    "SWAGGER_UI_SETTINGS": {
+        "persistAuthorization": True,  # 인증 정보 유지
+    },
+    "AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
     # OTHER SETTINGS
 }
