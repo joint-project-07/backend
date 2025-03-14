@@ -1,7 +1,9 @@
 from rest_framework import serializers
 
 from histories.models import History
-from recruitments.serializers import RecruitmentSerializer
+
+from recruitments.models import Recruitment
+
 from shelters.models import Shelter
 
 
@@ -11,13 +13,21 @@ class ShelterSerializer(serializers.ModelSerializer):
         fields = ["name", "region", "address"]
 
 
+class RecruitmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recruitment
+        fields = ["id", "date"]
+
+
 class HistorySerializer(serializers.ModelSerializer):
     shelter = ShelterSerializer()
     recruitment = RecruitmentSerializer()
 
     class Meta:
         model = History
-        fields = ["id", "recruitment", "shelter", "rating"]
+
+        fields = ["id", "shelter", "recruitment", "rating"]
+
 
 
 class HistoryRatingSerializer(serializers.ModelSerializer):
@@ -25,4 +35,6 @@ class HistoryRatingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = History
-        fields = "__all__"
+
+        fields = ["id", "rating"]
+
