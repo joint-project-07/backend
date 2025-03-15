@@ -365,6 +365,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         # 인증된 사용자만 접근할 수 있도록 처리
-        if not self.context.get("request").user.is_authenticated:
+        request = self.context.get("request")  # context에서 request 객체를 가져옴
+        if request and not request.user.is_authenticated:
             raise AuthenticationFailed({"message": "인증이 필요합니다."})
         return attrs

@@ -238,16 +238,16 @@ class UserView(APIView):
         user = request.user
 
         # UserUpdateSerializer에 현재 사용자 정보와 업데이트할 데이터를 전달하여 시리얼라이징
-        serializer = UserUpdateSerializer(user, data=request.data)
+        serializer = UserUpdateSerializer(
+            user, data=request.data, context={"request": request}
+        )
 
         # 시리얼라이저 유효성 검사
         if serializer.is_valid():
             # 정보가 유효하면, 업데이트 작업 후 결과 반환
-            updated_user = (
-                serializer.save()
-            )  # update 메서드에서 수정된 사용자 객체 반환
+            updated_user = serializer.save()
 
-            # 성공적으로 저장된 사용자 객체를 시리얼라이즈 후 응답
+            # 수정된 사용자 객체를 시리얼라이즈 후 응답
             updated_data = UserSerializer(updated_user).data
             return Response(
                 {
@@ -256,6 +256,7 @@ class UserView(APIView):
                 },
                 status=status.HTTP_200_OK,
             )
+
         # 유효성 검사 실패 시, 오류 반환
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
