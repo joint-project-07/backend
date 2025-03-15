@@ -257,15 +257,15 @@ class FindEmailSerializer(serializers.Serializer):
 
 # 🍒 임시비밀번호
 class ResetPasswordSerializer(serializers.Serializer):
-    name = serializers.CharField()
+    contact_number = serializers.CharField()
     email = serializers.EmailField()
 
     def validate(self, data):
-        name = data.get("name")
+        contact_number = data.get("contact_number")
         email = data.get("email")
 
         # 사용자 조회
-        user = User.objects.filter(name=name, email=email).first()
+        user = User.objects.filter(contact_number=contact_number, email=email).first()
 
         if not user:
             # 사용자 존재하지 않으면 ValidationError 발생
