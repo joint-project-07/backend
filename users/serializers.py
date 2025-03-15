@@ -289,7 +289,7 @@ class ResetPasswordSerializer(serializers.Serializer):
             send_mail(
                 "펫모어헨즈에서 임시 비밀번호 알려드립니다.",  # 제목
                 f"임시 비밀번호는 {temp_password}입니다.",  # 내용
-                "no-reply@example.com",  # 발신자 이메일 (실제로 존재해야함)
+                settings.EMAIL_HOST_USER,  # 발신자 이메일 (실제로 존재해야함)
                 [user.email],  # 수신자 이메일
                 fail_silently=False,  # 이메일 전송 실패 시 except으로
             )
