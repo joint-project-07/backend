@@ -191,7 +191,7 @@ class ChangePasswordView(APIView):
     🍒 비밀번호 변경 API
     """
 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     @extend_schema(request=ChangePasswordSerializer)
     def put(self, request):
