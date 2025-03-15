@@ -1,5 +1,6 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -147,13 +148,18 @@ class KakaoLoginView(APIView):
 
 
 class FindEmailView(APIView):
-    permission_classes = [AllowAny]
     """
     🍒 아이디 찾기 API
     """
 
+    permission_classes = [AllowAny]  # 로그인 여부 상관없이 누구나 접근 가능하도록 설정
+
     @extend_schema(request=FindEmailSerializer)
     def post(self, request):
+        # 로그인된 사용자는 아이디 찾기 API에 접근할 수 없도록 처리
+        if request.user.is_authenticated:
+            raise PermissionDenied({"message": "이미 로그인되어 있습니다."})
+
         # 아이디 찾기 시리얼라이저를 통해 요청 데이터 검증
         serializer = FindEmailSerializer(data=request.data)
 
