@@ -369,3 +369,8 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         if request and not request.user.is_authenticated:
             raise AuthenticationFailed({"message": "인증이 필요합니다."})
         return attrs
+
+
+# 🍒 로그아웃
+class LogoutSerializer(serializers.Serializer):
+    refresh_token = serializers.CharField()
