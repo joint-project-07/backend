@@ -13,6 +13,7 @@ from .serializers import (
     EmailLoginSerializer,
     FindEmailSerializer,
     KakaoLoginSerializer,
+    LogoutSerializer,
     ResetPasswordSerializer,
     ShelterSignupSerializer,
     SignupSerializer,
@@ -48,8 +49,15 @@ class EmailCheckView(APIView):
     🍒이메일 중복 확인 API
     """
 
+    permission_classes = [AllowAny]  # 로그인 여부 상관없이 누구나 접근 가능하도록 설정
+
     @extend_schema(request=EmailCheckSerializer)
     def post(self, request):
+        # 로그인된 사용자는 이메일 중복 확인 API에 접근할 수 없도록 처리
+        if request.user.is_authenticated:
+            raise PermissionDenied({"message": "이미 로그인되어 있습니다."})
+
+        # 이메일 중복 확인 시리얼라이저를 통해 요청 데이터 검증
         serializer = EmailCheckSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -66,13 +74,18 @@ class EmailCheckView(APIView):
 
 
 class EmailConfirmationView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAny]  # 로그인 여부 상관없이 누구나 접근 가능하도록 설정
+
     """
     🍒이메일 인증 확인 API
     """
 
     @extend_schema(request=EmailConfirmationSerializer)
     def post(self, request):
+        # 로그인된 사용자는 이메일 인증 확인 API에 접근할 수 없도록 처리
+        if request.user.is_authenticated:
+            raise PermissionDenied({"message": "이미 로그인되어 있습니다."})
+
         serializer = EmailConfirmationSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -180,15 +193,18 @@ class ResetPasswordView(APIView):
 
     @extend_schema(request=ResetPasswordSerializer)
     def post(self, request):
+        # 로그인된 사용자는 접근할 수 없도록 설정
+        if request.user and request.user.is_authenticated:
+            raise PermissionDenied({"message": "이미 로그인된 사용자입니다."})
+
         serializer = ResetPasswordSerializer(data=request.data)
 
         if serializer.is_valid():
-            # 비밀번호 재설정 성공 시, 시리얼라이저에서 반환된 데이터
             return Response(
-                serializer.validated_data,  # 유효한 데이터를 그대로 반환
+                serializer.validated_data,
                 status=status.HTTP_200_OK,
             )
-        # 유효성 검사 실패 시, 오류 반환
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -272,26 +288,22 @@ class LogoutView(APIView):
     🍒 로그아웃 API
     """
 
-    @extend_schema()
+    @extend_schema(request=LogoutSerializer)
     def post(self, request):
-        # 사용자 인증 정보 확인 (Authorization 헤더에서 토큰 추출)
         try:
-            refresh_token = request.data.get("refresh_token")
-            if not refresh_token:
-                return Response(
-                    {"message": "refresh_token이 필요합니다."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+            serializer = LogoutSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            # Refresh Token을 받아서 만료 처리
+            refresh_token = serializer.validated_data["refresh_token"]
+
+            # Refresh Token 블랙리스트 처리
             token = RefreshToken(refresh_token)
-            token.blacklist()  # 토큰을 블랙리스트에 추가하여 만료시킴
+            token.blacklist()
 
-            # 성공 응답
             return Response(
                 {"message": "성공적으로 로그아웃 되었습니다."},
                 status=status.HTTP_200_OK,
             )
-        # 예기치 않은 예외들을 처리
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
