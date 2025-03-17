@@ -46,7 +46,9 @@ class Shelter(BaseModel):
     )
     business_registration_number = models.CharField(max_length=20, null=False)
     business_registration_email = models.EmailField(max_length=255, null=False)
-    contact_number = models.CharField(max_length=20, null=True, blank=True)  # ✅ 추가됨 (보호소 연락처 저장 필드 추가)
+    contact_number = models.CharField(
+        max_length=20, null=True, blank=True
+    )  # ✅ 추가됨 (보호소 연락처 저장 필드 추가)
     business_license_file = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
