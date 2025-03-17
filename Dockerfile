@@ -36,4 +36,3 @@ RUN poetry show  # 의존성 확인
 
 # 11. 실행 명령어 설정
 CMD ["bash", "/app/scripts/run.sh"]
-
