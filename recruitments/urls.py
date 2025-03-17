@@ -1,15 +1,17 @@
 from django.urls import path
 
 from .views import (
-    RecruitmentCreateView,
-    RecruitmentDetailView,
     RecruitmentListView,
+    RecruitmentDetailView,
+    RecruitmentCreateView,
     RecruitmentUpdateView,
+    RecruitmentSearchView,
 )
 
 urlpatterns = [
-    path("", RecruitmentCreateView.as_view(), name="recruitment_create"),
     path("", RecruitmentListView.as_view(), name="recruitment-list"),
+    path("search/", RecruitmentSearchView.as_view(), name="recruitment-search"),
     path("<int:pk>/", RecruitmentDetailView.as_view(), name="recruitment-detail"),
-    path("<int:pk>/", RecruitmentUpdateView.as_view(), name="recruitment-update"),
+    path("create/", RecruitmentCreateView.as_view(), name="recruitment-create"),
+    path("update/<int:pk>/", RecruitmentUpdateView.as_view(), name="recruitment-update"),
 ]
