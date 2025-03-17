@@ -239,7 +239,6 @@ class ChangePasswordView(APIView):
 
 class UserView(APIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = UserSerializer
     """
     🍒 사용자 정보 조회/수정 API
     """

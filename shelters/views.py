@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .models import Shelter
-from .serializers import ShelterSerializer, ShelterUpdateSerializer
+from .serializers import ShelterCreateUpdateSerializer, ShelterSerializer
 
 
 # 🧀 보호소 검색 (GET /api/shelters/search)
@@ -59,7 +59,7 @@ class ShelterDetailView(generics.RetrieveAPIView):
 # 🧀 보호소 정보 수정 (PATCH /api/shelters/me/)
 class ShelterUpdateView(generics.UpdateAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = ShelterUpdateSerializer
+    serializer_class = ShelterCreateUpdateSerializer
 
     def get_object(self):
         return get_object_or_404(Shelter, user=self.request.user)
