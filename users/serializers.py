@@ -110,13 +110,19 @@ class EmailConfirmationSerializer(serializers.Serializer):
         return value
 
     def send_confirmation_email(self, email):
-        # 이메일을 통해 User 객체를 조회
+        # 이메일을 통해 User 객체를 조회하되, 사용자 없으면 새로 생성할 수 있도록 변경
+        user = None
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            raise serializers.ValidationError(
-                "등록되지 않은 이메일입니다."
-            )  # 사용자 없으면 오류 반환
+            # 사용자가 존재하지 않으면, 그 이메일로 인증을 위한 링크를 보내지 않음
+            # 회원가입을 먼저 진행해야 하므로 오류 발생시키지 않음
+            pass
+
+        if user is None:
+            # 유저가 없으면 인증 메일을 보내지 않음
+            return
+
         # 인증을 위한 URL 생성
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(str(user.pk).encode()).decode()
