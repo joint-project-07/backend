@@ -171,6 +171,10 @@ class ShelterSignupSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user_data = validated_data.pop("user")  # User 데이터만 분리해서
         user_data.pop("password_confirm", None)  # 'password_confirm'을 실제로 제거
+        # 비밀번호를 해싱하여 저장
+        if user_data.get("password"):
+            user_data["password"] = make_password(user_data["password"])
+
         user = User.objects.create(
             **user_data, is_shelter=True
         )  # 보호소 관리자인 경우 is_shelter=True로 설정
