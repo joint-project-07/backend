@@ -41,9 +41,11 @@ urlpatterns = [
         name="redoc",
     ),
     path(
-          "api/shelters/",include('shelters.urls'),
-      ),
+        "api/shelters/",
+        include("shelters.urls"),
+    ),
     path(
-          "api/recruitments/", include("recruitments.urls"),
-     ),
+        "api/recruitments/",
+        include("recruitments.urls"),
+    ),
 ]

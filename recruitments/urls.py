@@ -1,11 +1,11 @@
 from django.urls import path
 
 from .views import (
-    RecruitmentListView,
-    RecruitmentDetailView,
     RecruitmentCreateView,
-    RecruitmentUpdateView,
+    RecruitmentDetailView,
+    RecruitmentListView,
     RecruitmentSearchView,
+    RecruitmentUpdateView,
 )
 
 urlpatterns = [
@@ -13,5 +13,7 @@ urlpatterns = [
     path("search/", RecruitmentSearchView.as_view(), name="recruitment-search"),
     path("<int:pk>/", RecruitmentDetailView.as_view(), name="recruitment-detail"),
     path("create/", RecruitmentCreateView.as_view(), name="recruitment-create"),
-    path("update/<int:pk>/", RecruitmentUpdateView.as_view(), name="recruitment-update"),
+    path(
+        "update/<int:pk>/", RecruitmentUpdateView.as_view(), name="recruitment-update"
+    ),
 ]

@@ -1,5 +1,7 @@
 from rest_framework import serializers
+
 from .models import Recruitment
+
 
 class RecruitmentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -15,6 +17,7 @@ class RecruitmentSerializer(serializers.ModelSerializer):
             "supplies",
             "status",
         ]
+
 
 class RecruitmentUpdateSerializer(serializers.ModelSerializer):
     class Meta:

@@ -1,7 +1,7 @@
 from django.db.models import Q
 from rest_framework import generics, status
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from .models import Recruitment
 from .serializers import RecruitmentSerializer
@@ -13,9 +13,9 @@ class RecruitmentSearchView(generics.ListAPIView):
 
     def get_queryset(self):
         queryset = Recruitment.objects.all()
-        start_date = self.request.query_params.get('start_date')
-        end_date = self.request.query_params.get('end_date')
-        time = self.request.query_params.get('time')
+        start_date = self.request.query_params.get("start_date")
+        end_date = self.request.query_params.get("end_date")
+        time = self.request.query_params.get("time")
 
         # ✅ 날짜 필터링 (범위 검색)
         if start_date and end_date:
@@ -23,9 +23,7 @@ class RecruitmentSearchView(generics.ListAPIView):
 
         # ✅ 시간 필터링 (특정 시간 범위 검색)
         if time:
-            queryset = queryset.filter(
-                Q(start_time__lte=time) & Q(end_time__gte=time)
-            )
+            queryset = queryset.filter(Q(start_time__lte=time) & Q(end_time__gte=time))
 
         return queryset
 
@@ -37,9 +35,7 @@ class RecruitmentSearchView(generics.ListAPIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         serializer = self.get_serializer(queryset, many=True)
-        return Response(
-            {"recruitments": serializer.data}, status=status.HTTP_200_OK
-        )
+        return Response({"recruitments": serializer.data}, status=status.HTTP_200_OK)
 
 
 # 🧀 봉사활동 전체 조회
@@ -50,23 +46,19 @@ class RecruitmentListView(generics.ListAPIView):
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
-        return Response(
-            {"recruitments": serializer.data}, status=status.HTTP_200_OK
-        )
+        return Response({"recruitments": serializer.data}, status=status.HTTP_200_OK)
 
 
 # 🧀 봉사활동 상세 조회
 class RecruitmentDetailView(generics.RetrieveAPIView):
     queryset = Recruitment.objects.all()
     serializer_class = RecruitmentSerializer
-    lookup_field = 'pk'
+    lookup_field = "pk"
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
-        return Response(
-            {"recruitment": serializer.data}, status=status.HTTP_200_OK
-        )
+        return Response({"recruitment": serializer.data}, status=status.HTTP_200_OK)
 
 
 # 🧀 봉사활동 등록 → shelter_id 자동 추출 수정됨

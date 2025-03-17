@@ -38,7 +38,11 @@ class Recruitment(BaseModel):
         max_length=50, choices=RecruitmentTypeChoices.choices, null=False
     )  # 봉사 종류
     description = models.CharField(
-        max_length=50, choices=DescriptionChoices.choices, null=True, blank=True, default=""
+        max_length=50,
+        choices=DescriptionChoices.choices,
+        null=True,
+        blank=True,
+        default="",
     )  # ✅ 선택형 필드
     supplies = models.CharField(max_length=200, null=True, blank=True)  # 봉사 준비물
     status = models.CharField(
