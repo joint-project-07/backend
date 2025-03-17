@@ -1,3 +1,5 @@
+import re
+
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import check_password, make_password
@@ -34,8 +36,28 @@ class SignupSerializer(serializers.ModelSerializer):
             "contact_number",
         ]  # 포함할 필드
         extra_kwargs = {
-            "email": {"validators": []},  #  기본 유니크 검증 비활성화!
+            "email": {
+                "validators": []
+            },  # 기본 유니크 검증 비활성화!(email 필드의 기본 유니크 검증을 끄고, 대신 우리가 직접 검증하겠다)
         }
+
+    # 비밀번호 8자리 이상 검증
+    def validate_password(self, value):
+
+        if len(value) < 8:
+            raise serializers.ValidationError(
+                "비밀번호는 최소 8자리 이상이어야 합니다."
+            )
+        return value
+
+    # 전화번호 형식 검증 (숫자만 허용, 10~11자리)
+    def validate_contact_number(self, value):
+
+        if not re.fullmatch(r"^01[0-9]\d{7,8}$", value):
+            raise serializers.ValidationError(
+                "전화번호는 01012345678 형식이어야 합니다."
+            )
+        return value
 
     def validate(self, data):
         errors = {}  # 여러 개의 에러를 모을 딕셔너리
