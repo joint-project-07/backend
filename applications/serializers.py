@@ -6,13 +6,13 @@ from shelters.models import Shelter
 from users.serializers import UserSerializer
 
 
-class RecruitmentSerializer(serializers.ModelSerializer):
+class ApplicationRecruitmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recruitment
         fields = ["id", "date", "start_time", "end_time", "status"]
 
 
-class ShelterSerializer(serializers.ModelSerializer):
+class ApplicationShelterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Shelter
         fields = ["id", "name", "region", "address"]
@@ -20,8 +20,8 @@ class ShelterSerializer(serializers.ModelSerializer):
 
 class ApplicationSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    recruitment = RecruitmentSerializer(read_only=True)
-    shelter = ShelterSerializer(read_only=True)
+    recruitment = ApplicationRecruitmentSerializer(read_only=True)
+    shelter = ApplicationShelterSerializer(read_only=True)
 
     class Meta:
         model = Application

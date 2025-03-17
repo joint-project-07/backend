@@ -5,21 +5,21 @@ from recruitments.models import Recruitment
 from shelters.models import Shelter
 
 
-class ShelterSerializer(serializers.ModelSerializer):
+class HistoryShelterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Shelter
         fields = ["name", "region", "address"]
 
 
-class RecruitmentSerializer(serializers.ModelSerializer):
+class HistoryRecruitmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recruitment
         fields = ["id", "date"]
 
 
 class HistorySerializer(serializers.ModelSerializer):
-    shelter = ShelterSerializer()
-    recruitment = RecruitmentSerializer()
+    shelter = HistoryShelterSerializer()
+    recruitment = HistoryRecruitmentSerializer()
 
     class Meta:
         model = History

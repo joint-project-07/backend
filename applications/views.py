@@ -152,6 +152,7 @@ class ApplicationApproveRejectView(APIView):
     @extend_schema(
         summary="봉사 신청 승인",
         description="보호소 관리자가 특정 봉사 신청을 승인합니다.",
+        request=ApplicationSerializer,
         responses={
             200: ApplicationSerializer,
             403: {"example": {"detail": "승인 권한이 없습니다."}},
