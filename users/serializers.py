@@ -114,14 +114,11 @@ class EmailConfirmationSerializer(serializers.Serializer):
         user = None
         try:
             user = User.objects.get(email=email)
+            # 이미 존재하는 사용자라면, 인증 메일을 보내지 않음
+            return  # 이미 가입된 사용자에게는 인증 메일을 보내지 않음
         except User.DoesNotExist:
-            # 사용자가 존재하지 않으면, 그 이메일로 인증을 위한 링크를 보내지 않음
-            # 회원가입을 먼저 진행해야 하므로 오류 발생시키지 않음
-            pass
-
-        if user is None:
-            # 유저가 없으면 인증 메일을 보내지 않음
-            return
+            # 사용자가 없으면, 이메일 인증 메일을 보냄
+            pass  # 아무것도 하지 않음 (예: 로깅하거나 다른 처리를 할 수 있음)
 
         # 인증을 위한 URL 생성
         token = default_token_generator.make_token(user)
