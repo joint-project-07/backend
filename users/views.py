@@ -24,6 +24,7 @@ from .serializers import (
 
 class SignupView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = SignupSerializer
     """
     🍒봉사자 회원가입 API
     """
@@ -45,11 +46,11 @@ class SignupView(APIView):
 
 
 class EmailCheckView(APIView):
+    permission_classes = [AllowAny]  # 로그인 여부 상관없이 누구나 접근 가능하도록 설정
+    serializer_class = EmailCheckSerializer
     """
     🍒이메일 중복 확인 API
     """
-
-    permission_classes = [AllowAny]  # 로그인 여부 상관없이 누구나 접근 가능하도록 설정
 
     @extend_schema(request=EmailCheckSerializer)
     def post(self, request):
@@ -75,7 +76,7 @@ class EmailCheckView(APIView):
 
 class EmailConfirmationView(APIView):
     permission_classes = [AllowAny]  # 로그인 여부 상관없이 누구나 접근 가능하도록 설정
-
+    serializer_class = EmailConfirmationSerializer
     """
     🍒이메일 인증 확인 API
     """
@@ -101,6 +102,7 @@ class EmailConfirmationView(APIView):
 
 class ShelterSignupView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = ShelterSignupSerializer
     """
     🍒보호소 회원가입 API
     """
@@ -123,6 +125,7 @@ class ShelterSignupView(APIView):
 
 class EmailLoginView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = EmailLoginSerializer
     """
     🍒이메일 로그인 API
     """
@@ -143,6 +146,7 @@ class EmailLoginView(APIView):
 
 class KakaoLoginView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = KakaoLoginSerializer
     """
     🍒 카카오 로그인과 회원가입API
     """
@@ -161,11 +165,11 @@ class KakaoLoginView(APIView):
 
 
 class FindEmailView(APIView):
+    permission_classes = [AllowAny]  # 로그인 여부 상관없이 누구나 접근 가능하도록 설정
+    serializer_class = FindEmailSerializer
     """
     🍒 아이디 찾기 API
     """
-
-    permission_classes = [AllowAny]  # 로그인 여부 상관없이 누구나 접근 가능하도록 설정
 
     @extend_schema(request=FindEmailSerializer)
     def post(self, request):
@@ -187,6 +191,7 @@ class FindEmailView(APIView):
 
 class ResetPasswordView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = ResetPasswordSerializer
     """
     🍒 임시비밀번호  API
     """
@@ -209,11 +214,11 @@ class ResetPasswordView(APIView):
 
 
 class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ChangePasswordSerializer
     """
     🍒 비밀번호 변경 API
     """
-
-    permission_classes = [IsAuthenticated]
 
     @extend_schema(request=ChangePasswordSerializer)
     def put(self, request):
@@ -233,11 +238,11 @@ class ChangePasswordView(APIView):
 
 
 class UserView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
     """
     🍒 사용자 정보 조회/수정 API
     """
-
-    permission_classes = [IsAuthenticated]
 
     # 인증된 사용자만 접근 가능
     @extend_schema(request=UserSerializer)
@@ -284,6 +289,7 @@ class UserView(APIView):
 
 
 class LogoutView(APIView):
+    serializer_class = LogoutSerializer
     """
     🍒 로그아웃 API
     """

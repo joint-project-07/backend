@@ -109,7 +109,17 @@ class EmailConfirmationSerializer(serializers.Serializer):
             raise serializers.ValidationError("이미 사용 중인 이메일입니다.")
         return value
 
-    def send_confirmation_email(self, user):
+    def send_confirmation_email(self, email):
+        # 이메일을 통해 User 객체를 조회하되, 사용자 없으면 새로 생성할 수 있도록 변경
+        user = None
+        try:
+            user = User.objects.get(email=email)
+            # 이미 존재하는 사용자라면, 인증 메일을 보내지 않음
+            return  # 이미 가입된 사용자에게는 인증 메일을 보내지 않음
+        except User.DoesNotExist:
+            # 사용자가 없으면, 이메일 인증 메일을 보냄
+            pass  # 아무것도 하지 않음 (예: 로깅하거나 다른 처리를 할 수 있음)
+
         # 인증을 위한 URL 생성
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(str(user.pk).encode()).decode()
@@ -124,7 +134,7 @@ class EmailConfirmationSerializer(serializers.Serializer):
                 "token": token,
             },
         )
-
+        # 이메일 발송
         send_mail(
             subject,
             message,
