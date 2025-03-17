@@ -44,4 +44,8 @@ urlpatterns = [
         "api/shelters/",
         include("shelters.urls"),
     ),
+    path(
+        "api/recruitments/",
+        include("recruitments.urls"),
+    ),
 ]

@@ -16,6 +16,16 @@ class RecruitmentStatus(models.TextChoices):
     CLOSED = "closed", "Closed"
 
 
+# ✅ description 필드를 선택형 필드로 수정
+class DescriptionChoices(models.TextChoices):
+    CLEANING = "cleaning", "견사청소"
+    GROOMING = "grooming", "미용"
+    BATHING = "bathing", "목욕"
+    WALKING = "walking", "산책"
+    FEEDING = "feeding", "밥주기"
+    OTHER = "other", "기타"
+
+
 class Recruitment(BaseModel):
     id = models.AutoField(primary_key=True)
     shelter = models.ForeignKey(
@@ -27,7 +37,13 @@ class Recruitment(BaseModel):
     type = models.CharField(
         max_length=50, choices=RecruitmentTypeChoices.choices, null=False
     )  # 봉사 종류
-    description = models.TextField(null=True, blank=True)  # 봉사 설명
+    description = models.CharField(
+        max_length=50,
+        choices=DescriptionChoices.choices,
+        null=True,
+        blank=True,
+        default="",
+    )  # ✅ 선택형 필드
     supplies = models.CharField(max_length=200, null=True, blank=True)  # 봉사 준비물
     status = models.CharField(
         max_length=20, choices=RecruitmentStatus.choices, default=RecruitmentStatus.OPEN
