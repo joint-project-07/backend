@@ -35,7 +35,7 @@ class ShelterSerializer(serializers.ModelSerializer):
         ]
 
 
-# ✅ 보호소 생성 & 수정 시리얼라이저
+# ✅ 보호소 생성 & 수정 시리얼라이저.
 class ShelterCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Shelter
