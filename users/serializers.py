@@ -5,13 +5,10 @@ from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.password_validation import validate_password
-from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites import requests
 from django.core.cache import cache
 from django.core.mail import send_mail
-from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
-from django.utils.http import urlsafe_base64_encode
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken

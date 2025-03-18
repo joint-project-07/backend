@@ -1,6 +1,4 @@
-from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.core.mail import send_mail
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
