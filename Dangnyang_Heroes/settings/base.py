@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "users",
     "shelters",
     "recruitments",
+    "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",  # 블랙리스트 기능 추가
 ]

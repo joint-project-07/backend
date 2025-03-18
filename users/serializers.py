@@ -1,3 +1,4 @@
+import random
 import re
 
 from django.conf import settings
@@ -6,6 +7,7 @@ from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites import requests
+from django.core.cache import cache
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.crypto import get_random_string
@@ -99,49 +101,51 @@ class EmailCheckSerializer(serializers.Serializer):
         return value
 
 
-# 🍒 이메일 인증 확인
+# 🍒이메일 인증 확인
 class EmailConfirmationSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
-    def validate_email(self, value):
-        # 이미 등록된 이메일은 다시 인증할 수 없음
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("이미 사용 중인 이메일입니다.")
-        return value
-
-    def send_confirmation_email(self, email):
-        # 이메일을 통해 User 객체를 조회하되, 사용자 없으면 새로 생성할 수 있도록 변경
-        user = None
+    def send_verification_email(self, email):
         try:
+            # 이메일로 사용자가 존재하는지 확인
             user = User.objects.get(email=email)
-            # 이미 존재하는 사용자라면, 인증 메일을 보내지 않음
-            return  # 이미 가입된 사용자에게는 인증 메일을 보내지 않음
+            # 이미 가입된 사용자에게는 인증 이메일을 보내지 않음
+            raise serializers.ValidationError("이미 사용 중인 이메일입니다.")
         except User.DoesNotExist:
-            # 사용자가 없으면, 이메일 인증 메일을 보냄
-            pass  # 아무것도 하지 않음 (예: 로깅하거나 다른 처리를 할 수 있음)
+            # 새 사용자인 경우 랜덤 인증 코드 생성
+            verification_code = random.randint(100000, 999999)  # 6자리 인증 코드
 
-        # 인증을 위한 URL 생성
-        token = default_token_generator.make_token(user)
-        uid = urlsafe_base64_encode(str(user.pk).encode()).decode()
+            # 이메일 내용 설정
+            subject = "이메일 인증을 완료해주세요."
+            message = f"""
+            <html>
+                <body>
+                    <h1>이메일 인증</h1>
+                    <p>아래 코드를 입력하여 이메일 인증을 완료해주세요.</p>
+                    <p><strong>{verification_code}</strong></p>
+                </body>
+            </html>
+            """
 
-        # 이메일 내용
-        subject = "이메일 인증을 완료해 주세요."
-        message = render_to_string(
-            "email/confirmation_email.html",
-            {
-                "user": user,
-                "uid": uid,
-                "token": token,
-            },
-        )
-        # 이메일 발송
-        send_mail(
-            subject,
-            message,
-            settings.EMAIL_HOST_USER,  # 발신자 이메일
-            [user.email],  # 수신자 이메일
-            fail_silently=False,
-        )
+            # 이메일 발송
+            send_mail(
+                subject,
+                message,
+                settings.EMAIL_HOST_USER,
+                [email],  # 사용자 이메일로 인증 코드 발송
+                fail_silently=False,
+                html_message=message,  # HTML 본문 사용
+            )
+
+            # 인증 코드를 캐시에 저장 (예: 5분 유효)
+            cache.set(
+                f"email_verification_code_{verification_code}", email, timeout=300
+            )  # 5분 유효 기간
+
+
+# 🍒이메일 인증 처리
+class VerifyEmailSerializer(serializers.Serializer):
+    code = serializers.CharField(max_length=6)
 
 
 # 🍒보호소 회원가입
@@ -410,3 +414,17 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 # 🍒 로그아웃
 class LogoutSerializer(serializers.Serializer):
     refresh_token = serializers.CharField()
+
+
+# 🍒회원 탈퇴
+class UserDeleteSerializer(serializers.Serializer):
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User  # 여기서 모델을 지정
+
+    def validate_password(self, value):
+        user = self.context["request"].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("비밀번호가 올바르지 않습니다.")
+        return value

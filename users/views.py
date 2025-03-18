@@ -1,3 +1,6 @@
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from django.core.mail import send_mail
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
@@ -17,8 +20,10 @@ from .serializers import (
     ResetPasswordSerializer,
     ShelterSignupSerializer,
     SignupSerializer,
+    UserDeleteSerializer,
     UserSerializer,
     UserUpdateSerializer,
+    VerifyEmailSerializer,
 )
 
 
@@ -87,17 +92,53 @@ class EmailConfirmationView(APIView):
         if request.user.is_authenticated:
             raise PermissionDenied({"message": "이미 로그인되어 있습니다."})
 
+        # 시리얼라이저에 데이터 전달
         serializer = EmailConfirmationSerializer(data=request.data)
 
         if serializer.is_valid():
             email = serializer.validated_data["email"]
-            serializer.send_confirmation_email(email)
+            serializer.send_verification_email(email)  # 이메일 인증 코드 발송
             return Response(
-                {"message": "이메일 인증을 위한 링크가 전송되었습니다."},
+                {"message": "이메일 인증을 위한 코드가 전송되었습니다."},
                 status=status.HTTP_200_OK,
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class VerifyEmailView(APIView):
+    permission_classes = [AllowAny]  # 로그인 여부 상관없이 누구나 접근 가능하도록 설정
+
+    """
+    🍒이메일 인증 처리
+    """
+
+    @extend_schema(request=VerifyEmailSerializer)
+    def post(self, request):
+        # 인증 코드만 받음
+        code = request.data.get("code")
+        print(
+            f"Received code: {code}", flush=True
+        )  # 디버깅: 코드가 잘 전달되었는지 확인
+
+        if not code:
+            return Response(
+                {"message": "인증 코드를 입력하세요."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # 인증 코드가 캐시에서 유효한지 확인
+        if not cache.get(f"email_verification_code_{code}"):
+            return Response(
+                {"message": "유효하지 않거나 만료된 인증 코드입니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # 인증 코드가 유효하면 사용자 활성화
+        # 여기서는 이미 코드가 유효한지 확인했으므로 이메일을 찾을 필요 없음
+        return Response(
+            {"message": "이메일 인증이 완료되었습니다!"}, status=status.HTTP_200_OK
+        )
 
 
 class ShelterSignupView(APIView):
@@ -312,3 +353,23 @@ class LogoutView(APIView):
             )
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserDeleteView(APIView):
+    permission_classes = [IsAuthenticated]  # 로그인한 사용자만 접근 가능
+    """
+    🍒 회원탈퇴 API
+    """
+
+    @extend_schema(request=UserDeleteSerializer)
+    def post(self, request):
+        serializer = UserDeleteSerializer(
+            data=request.data, context={"request": request}
+        )
+        if serializer.is_valid():
+            request.user.delete()  # 현재 로그인한 유저 삭제
+            return Response(
+                {"message": "회원 탈퇴가 완료되었습니다."}, status=status.HTTP_200_OK
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
