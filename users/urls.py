@@ -11,7 +11,9 @@ from .views import (
     ResetPasswordView,
     ShelterSignupView,
     SignupView,
+    UserDeleteView,
     UserView,
+    VerifyEmailView,
 )
 
 urlpatterns = [
@@ -30,4 +32,6 @@ urlpatterns = [
         name="email-confirmation",
     ),
     path("change-password/", ChangePasswordView.as_view(), name="change-password"),
+    path("verify/email-code/", VerifyEmailView.as_view(), name="verify-email-code"),
+    path("delete/", UserDeleteView.as_view(), name="user-delete"),
 ]
