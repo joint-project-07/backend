@@ -1,12 +1,17 @@
+import random
+
+from django.conf import settings
 from django.core.cache import cache
+from django.core.mail import send_mail
 from drf_spectacular.utils import extend_schema
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from .models import User
 from .serializers import (
     ChangePasswordSerializer,
     EmailCheckSerializer,
@@ -34,6 +39,19 @@ class SignupView(APIView):
 
     @extend_schema(
         request=SignupSerializer,
+        responses={
+            201: {"example": {"message": "회원가입이 완료되었습니다."}},
+            400: {
+                "example": {
+                    "password": ["비밀번호는 최소 8자리 이상이어야 합니다."],
+                    "contact_number": ["이미 등록된 전화번호입니다."],
+                    "email": ["이미 사용 중인 이메일입니다."],
+                    "password_confirm": [
+                        "비밀번호와 비밀번호 확인이 일치하지 않습니다."
+                    ],
+                }
+            },
+        },
     )
     def post(self, request):
         serializer = SignupSerializer(data=request.data)
@@ -55,7 +73,14 @@ class EmailCheckView(APIView):
     🍒이메일 중복 확인 API
     """
 
-    @extend_schema(request=EmailCheckSerializer)
+    @extend_schema(
+        request=EmailCheckSerializer,
+        responses={
+            200: {"example": {"message": "사용 가능한 이메일입니다."}},
+            400: {"example": {"email": ["이미 사용 중인 이메일입니다."]}},
+            403: {"example": {"message": "이미 로그인되어 있습니다."}},
+        },
+    )
     def post(self, request):
         # 로그인된 사용자는 이메일 중복 확인 API에 접근할 수 없도록 처리
         if request.user.is_authenticated:
@@ -84,18 +109,56 @@ class EmailConfirmationView(APIView):
     🍒이메일 인증 확인 API
     """
 
-    @extend_schema(request=EmailConfirmationSerializer)
+    @extend_schema(
+        request=EmailConfirmationSerializer,
+        responses={
+            200: {"example": {"message": "이메일 인증을 위한 코드가 전송되었습니다."}},
+            403: {"example": {"message": "이미 로그인되어 있습니다."}},
+            400: {"example": {"email": ["이미 사용 중인 이메일입니다."]}},
+        },
+    )
+    def send_verification_email(self, email):
+        try:
+            user = User.objects.get(email=email)
+            raise serializers.ValidationError(
+                {"email": ["이미 사용 중인 이메일입니다."]}
+            )
+        except User.DoesNotExist:
+            verification_code = random.randint(100000, 999999)
+
+            subject = "이메일 인증을 완료해주세요."
+            message = f"""
+            <html>
+                <body>
+                    <h1>이메일 인증</h1>
+                    <p>아래 코드를 입력하여 이메일 인증을 완료해주세요.</p>
+                    <p><strong>{verification_code}</strong></p>
+                </body>
+            </html>
+            """
+
+            send_mail(
+                subject,
+                message,
+                settings.EMAIL_HOST_USER,
+                [email],
+                fail_silently=False,
+                html_message=message,
+            )
+
+            cache.set(
+                f"email_verification_code_{verification_code}", email, timeout=300
+            )
+
     def post(self, request):
-        # 로그인된 사용자는 이메일 인증 확인 API에 접근할 수 없도록 처리
         if request.user.is_authenticated:
             raise PermissionDenied({"message": "이미 로그인되어 있습니다."})
 
-        # 시리얼라이저에 데이터 전달
         serializer = EmailConfirmationSerializer(data=request.data)
 
         if serializer.is_valid():
             email = serializer.validated_data["email"]
-            serializer.send_verification_email(email)  # 이메일 인증 코드 발송
+            self.send_verification_email(email)
             return Response(
                 {"message": "이메일 인증을 위한 코드가 전송되었습니다."},
                 status=status.HTTP_200_OK,
@@ -111,7 +174,14 @@ class VerifyEmailView(APIView):
     🍒이메일 인증 처리
     """
 
-    @extend_schema(request=VerifyEmailSerializer)
+    @extend_schema(
+        request=VerifyEmailSerializer,
+        responses={
+            200: {"example": {"message": "이메일 인증이 완료되었습니다!"}},
+            400: {"example": {"message": "인증 코드를 입력하세요."}},
+            404: {"example": {"message": "유효하지 않거나 만료된 인증 코드입니다."}},
+        },
+    )
     def post(self, request):
         # 인증 코드만 받음
         code = request.data.get("code")
@@ -129,7 +199,7 @@ class VerifyEmailView(APIView):
         if not cache.get(f"email_verification_code_{code}"):
             return Response(
                 {"message": "유효하지 않거나 만료된 인증 코드입니다."},
-                status=status.HTTP_400_BAD_REQUEST,
+                status=status.HTTP_404_NOT_FOUND,
             )
 
         # 인증 코드가 유효하면 사용자 활성화
@@ -146,7 +216,22 @@ class ShelterSignupView(APIView):
     🍒보호소 회원가입 API
     """
 
-    @extend_schema(request=ShelterSignupSerializer)
+    @extend_schema(
+        request=ShelterSignupSerializer,
+        responses={
+            201: {"example": {"message": "회원가입이 완료되었습니다."}},
+            400: {
+                "example": {
+                    "password": ["비밀번호는 최소 8자리 이상이어야 합니다."],
+                    "contact_number": ["이미 등록된 전화번호입니다."],
+                    "email": ["이미 사용 중인 이메일입니다."],
+                    "password_confirm": [
+                        "비밀번호와 비밀번호 확인이 일치하지 않습니다."
+                    ],
+                }
+            },
+        },
+    )
     def post(self, request):
         # 시리얼라이저에 요청 데이터 전달
         serializer = ShelterSignupSerializer(data=request.data)
@@ -169,7 +254,25 @@ class EmailLoginView(APIView):
     🍒이메일 로그인 API
     """
 
-    @extend_schema(request=EmailLoginSerializer)
+    @extend_schema(
+        request=EmailLoginSerializer,
+        responses={
+            200: {
+                "example": {
+                    "message": "로그인 성공",
+                    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "token_type": "Bearer",
+                }
+            },
+            400: {
+                "example": {
+                    "email": ["사용자를 찾을 수 없습니다."],
+                    "password": ["비밀번호가 올바르지 않습니다."],
+                }
+            },
+        },
+    )
     def post(self, request):
         serializer = EmailLoginSerializer(data=request.data)
 
@@ -190,7 +293,22 @@ class KakaoLoginView(APIView):
     🍒 카카오 로그인과 회원가입API
     """
 
-    @extend_schema(request=KakaoLoginSerializer)
+    @extend_schema(
+        request=KakaoLoginSerializer,
+        responses={
+            200: {
+                "example": {
+                    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "token_type": "Bearer",
+                }
+            },
+            400: {
+                "example": {"message": ["이메일 정보가 필요합니다."]},
+                500: {"example": {"Error": "Internal Server Error"}},
+            },
+        },
+    )
     def post(self, request):
         # 카카오 로그인 시리얼라이저를 통해 요청 데이터 검증
         serializer = KakaoLoginSerializer(data=request.data)
@@ -199,6 +317,7 @@ class KakaoLoginView(APIView):
         if serializer.is_valid():
             # 유효성 검사를 통과하면 validated_data에 접근하여 JWT 토큰 반환
             return Response(serializer.validated_data, status=status.HTTP_200_OK)
+
         # 유효성 검사 실패 시, 오류 반환
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -210,14 +329,19 @@ class FindEmailView(APIView):
     🍒 아이디 찾기 API
     """
 
-    @extend_schema(request=FindEmailSerializer)
+    @extend_schema(
+        request=FindEmailSerializer,
+        responses={
+            200: {"example": {"email": "user@email.com"}},
+            400: {"example": {"message": ["이미 로그인되어 있습니다."]}},
+            404: {"example": {"message": "사용자를 찾을 수 없습니다."}},
+        },
+    )
     def post(self, request):
-        # 로그인된 사용자는 아이디 찾기 API에 접근할 수 없도록 처리
-        if request.user.is_authenticated:
-            raise PermissionDenied({"message": "이미 로그인되어 있습니다."})
-
         # 아이디 찾기 시리얼라이저를 통해 요청 데이터 검증
-        serializer = FindEmailSerializer(data=request.data)
+        serializer = FindEmailSerializer(
+            data=request.data, context={"request": request}
+        )
 
         # 시리얼라이저 검증
         if serializer.is_valid():
@@ -232,18 +356,27 @@ class ResetPasswordView(APIView):
     permission_classes = [AllowAny]
     serializer_class = ResetPasswordSerializer
     """
-    🍒 임시비밀번호  API
+    🍒 임시비밀번호 API
     """
 
-    @extend_schema(request=ResetPasswordSerializer)
+    @extend_schema(
+        request=ResetPasswordSerializer,
+        responses={
+            200: {"example": {"message": "임시 비밀번호가 이메일로 전송되었습니다."}},
+            400: {"example": {"message": ["이미 로그인된 사용자입니다."]}},
+            404: {"example": {"message": "사용자를 찾을 수 없습니다."}},
+            500: {"example": {"Error": "Internal Server Error"}},
+        },
+    )
     def post(self, request):
-        # 로그인된 사용자는 접근할 수 없도록 설정
-        if request.user and request.user.is_authenticated:
-            raise PermissionDenied({"message": "이미 로그인된 사용자입니다."})
+        # 아이디 찾기 시리얼라이저를 통해 요청 데이터 검증
+        serializer = ResetPasswordSerializer(
+            data=request.data, context={"request": request}
+        )
 
-        serializer = ResetPasswordSerializer(data=request.data)
-
+        # 시리얼라이저 검증
         if serializer.is_valid():
+            # 유효성 검사를 통과하면 validated_data에 접근하여 메시지 반환
             return Response(
                 serializer.validated_data,
                 status=status.HTTP_200_OK,
@@ -259,7 +392,15 @@ class ChangePasswordView(APIView):
     🍒 비밀번호 변경 API
     """
 
-    @extend_schema(request=ChangePasswordSerializer)
+    @extend_schema(
+        request=ChangePasswordSerializer,
+        responses={
+            200: {"example": {"message": "비밀번호가 성공적으로 변경되었습니다."}},
+            400: {
+                "example": {"current_password": ["현재 비밀번호가 올바르지 않습니다."]}
+            },
+        },
+    )
     def put(self, request):
         user = request.user
         serializer = ChangePasswordSerializer(
@@ -283,7 +424,7 @@ class UserView(APIView):
     """
 
     # 인증된 사용자만 접근 가능
-    @extend_schema(request=UserSerializer)
+    @extend_schema(request=UserSerializer, responses=UserSerializer)
     def get(self, request):
         # 인증된 사용자 정보 가져오기
         user = request.user
@@ -297,7 +438,23 @@ class UserView(APIView):
         }
         return Response(response_data, status=status.HTTP_200_OK)
 
-    @extend_schema(request=UserUpdateSerializer)
+    @extend_schema(
+        request=UserUpdateSerializer,
+        responses={
+            200: {
+                "example": {
+                    "message": "사용자 정보가 성공적으로 수정되었습니다.",
+                    "user": {
+                        "id": 29,
+                        "email": "user@gmail.com",
+                        "name": "string33",
+                        "contact_number": "01044444444",
+                        "profile_image": "string",
+                    },
+                }
+            }
+        },
+    )
     def put(self, request):
         # 인증된 사용자 정보 가져오기
         user = request.user
@@ -332,7 +489,13 @@ class LogoutView(APIView):
     🍒 로그아웃 API
     """
 
-    @extend_schema(request=LogoutSerializer)
+    @extend_schema(
+        request=LogoutSerializer,
+        responses={
+            200: {"example": {"message": "성공적으로 로그아웃 되었습니다."}},
+            400: {"example": {"message": "Token is invalid"}},
+        },
+    )
     def post(self, request):
         try:
             serializer = LogoutSerializer(data=request.data)
@@ -359,7 +522,13 @@ class UserDeleteView(APIView):
     🍒 회원탈퇴 API
     """
 
-    @extend_schema(request=UserDeleteSerializer)
+    @extend_schema(
+        request=UserDeleteSerializer,
+        responses={
+            200: {"example": {"message": "회원 탈퇴가 완료되었습니다."}},
+            400: {"example": {"password": ["비밀번호가 올바르지 않습니다."]}},
+        },
+    )
     def post(self, request):
         serializer = UserDeleteSerializer(
             data=request.data, context={"request": request}

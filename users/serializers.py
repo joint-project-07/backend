@@ -6,11 +6,10 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.sites import requests
-from django.core.cache import cache
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
 from rest_framework import serializers
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.exceptions import AuthenticationFailed, NotFound, PermissionDenied
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from shelters.models import Shelter
@@ -40,26 +39,18 @@ class SignupSerializer(serializers.ModelSerializer):
             },  # 기본 유니크 검증 비활성화!(email 필드의 기본 유니크 검증을 끄고, 대신 우리가 직접 검증하겠다)
         }
 
-    # 비밀번호 8자리 이상 검증
-    def validate_password(self, value):
-
-        if len(value) < 8:
-            raise serializers.ValidationError(
-                "비밀번호는 최소 8자리 이상이어야 합니다."
-            )
-        return value
-
-    # 전화번호 형식 검증 (숫자만 허용, 10~11자리)
-    def validate_contact_number(self, value):
-
-        if not re.fullmatch(r"^01[0-9]\d{7,8}$", value):
-            raise serializers.ValidationError(
-                "전화번호는 01012345678 형식이어야 합니다."
-            )
-        return value
-
     def validate(self, data):
         errors = {}  # 여러 개의 에러를 모을 딕셔너리
+
+        # 비밀번호 8자리 이상 검증
+        password = data.get("password")
+        if len(password) < 8:
+            errors["password"] = ["비밀번호는 최소 8자리 이상이어야 합니다."]
+
+        # 전화번호 형식 검증
+        contact_number = data.get("contact_number")
+        if not re.fullmatch(r"^01[0-9]\d{7,8}$", contact_number):
+            errors["contact_number"] = ["전화번호는 01012345678 형식이어야 합니다."]
 
         # 비밀번호 확인
         if data["password"] != data["password_confirm"]:
@@ -67,7 +58,7 @@ class SignupSerializer(serializers.ModelSerializer):
                 "비밀번호와 비밀번호 확인이 일치하지 않습니다."
             ]
 
-        # 이메일 중복 체크 (한 번더)
+        # 이메일 중복 체크 (한 번 더)
         if User.objects.filter(email=data["email"]).exists():
             errors["email"] = ["이미 사용 중인 이메일입니다."]
 
@@ -102,42 +93,9 @@ class EmailCheckSerializer(serializers.Serializer):
 class EmailConfirmationSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
-    def send_verification_email(self, email):
-        try:
-            # 이메일로 사용자가 존재하는지 확인
-            user = User.objects.get(email=email)
-            # 이미 가입된 사용자에게는 인증 이메일을 보내지 않음
-            raise serializers.ValidationError("이미 사용 중인 이메일입니다.")
-        except User.DoesNotExist:
-            # 새 사용자인 경우 랜덤 인증 코드 생성
-            verification_code = random.randint(100000, 999999)  # 6자리 인증 코드
-
-            # 이메일 내용 설정
-            subject = "이메일 인증을 완료해주세요."
-            message = f"""
-            <html>
-                <body>
-                    <h1>이메일 인증</h1>
-                    <p>아래 코드를 입력하여 이메일 인증을 완료해주세요.</p>
-                    <p><strong>{verification_code}</strong></p>
-                </body>
-            </html>
-            """
-
-            # 이메일 발송
-            send_mail(
-                subject,
-                message,
-                settings.EMAIL_HOST_USER,
-                [email],  # 사용자 이메일로 인증 코드 발송
-                fail_silently=False,
-                html_message=message,  # HTML 본문 사용
-            )
-
-            # 인증 코드를 캐시에 저장 (예: 5분 유효)
-            cache.set(
-                f"email_verification_code_{verification_code}", email, timeout=300
-            )  # 5분 유효 기간
+    def validate_email(self, value):
+        # 이메일 형식 검증
+        return value
 
 
 # 🍒이메일 인증 처리
@@ -234,9 +192,8 @@ class KakaoLoginSerializer(serializers.Serializer):
         response = requests.get(user_info_url, headers=headers)
 
         if response.status_code != 200:
-            raise serializers.ValidationError(
-                {"message": "카카오 사용자 정보를 가져오는 데 실패했습니다."}
-            )
+            # 여기서 ValidationError 대신 예외를 던져서 500 에러로 처리하도록
+            raise Exception
 
         user_info = response.json()
         provider_id = str(user_info.get("id"))  # 카카오 고유 사용자 ID 추출
@@ -276,18 +233,18 @@ class FindEmailSerializer(serializers.Serializer):
     contact_number = serializers.CharField()
 
     def validate(self, data):
+        # 로그인된 사용자는 아이디 찾기 API를 사용할 수 없음
+        if self.context.get("request").user.is_authenticated:
+            raise serializers.ValidationError({"message": "이미 로그인되어 있습니다."})
+
         name = data.get("name")
         contact_number = data.get("contact_number")
         # 사용자를 이름과 전번으로 조회
         user = User.objects.filter(name=name, contact_number=contact_number).first()
 
         if not user:
-            # 사용자 정보가 일치하지 않으면 ValidationError 발생
-            raise serializers.ValidationError({"message": "사용자를 찾을 수 없습니다."})
-
-        # 이메일 정보가 없는 경우
-        if not user.email:
-            raise serializers.ValidationError({"message": "이메일 정보가 없습니다."})
+            # 사용자 정보가 일치하지 않으면 NotFound 예외 발생
+            raise NotFound({"message": "사용자를 찾을 수 없습니다."})
 
         return {"email": user.email}
 
@@ -298,6 +255,13 @@ class ResetPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
     def validate(self, data):
+        request = self.context.get("request")  # 뷰에서 전달된 request 객체
+        # 로그인된 사용자는 임시 비밀번호 요청을 할 수 없음
+        if request.user.is_authenticated:
+            raise serializers.ValidationError(
+                {"message": "이미 로그인된 사용자입니다."}
+            )
+
         contact_number = data.get("contact_number")
         email = data.get("email")
 
@@ -305,14 +269,8 @@ class ResetPasswordSerializer(serializers.Serializer):
         user = User.objects.filter(contact_number=contact_number, email=email).first()
 
         if not user:
-            # 사용자 존재하지 않으면 ValidationError 발생
-            raise serializers.ValidationError({"message": "사용자를 찾을 수 없습니다."})
-
-        if user.email != email:
-            # 이메일이 일치하지 않으면 ValidationError 발생
-            raise serializers.ValidationError(
-                {"message": "이메일이 일치하지 않습니다."}
-            )
+            # 사용자 존재하지 않으면 NotFound 예외 발생
+            raise NotFound({"message": "사용자를 찾을 수 없습니다."})
 
         # 임시 비밀번호 생성
         temp_password = get_random_string(length=8)  # 임시 비밀번호 (8자리)
@@ -332,9 +290,7 @@ class ResetPasswordSerializer(serializers.Serializer):
             )
         except Exception:
             # 이메일 전송 실패 시 500 에러 발생
-            raise serializers.ValidationError(
-                {"message": "전송에 실패했습니다. 잠시 후 다시 시도해주세요."}
-            )
+            raise Exception
 
         return {"message": "임시 비밀번호가 이메일로 전송되었습니다."}
 
@@ -374,38 +330,17 @@ class UserSerializer(serializers.ModelSerializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["name", "contact_number", "profile_image"]
+        fields = ["name", "profile_image"]
         read_only_fields = ["email", "contact_number"]  # 이메일과 전화번호는 수정 불가
 
     def update(self, instance, validated_data):
-        # 이메일과 전화번호는 이미 read_only=True로 설정되어있어서 수정하려고 하면 오류 발생시켜버리기
-        if "email" in validated_data:
-            raise serializers.ValidationError(
-                {
-                    "message": "이메일은 수정할 수 없습니다."
-                }  # `code`는 응답에서 뷰에서 설정
-            )
-        if "contact_number" in validated_data:
-            raise serializers.ValidationError(
-                {
-                    "message": "전화번호는 수정할 수 없습니다."
-                }  # `code`는 응답에서 뷰에서 설정
-            )
-
-        # 나머지 데이터만(이메일, 전번 제외 나머지) 업데이트
+        # 이메일은 수정 불가하므로 자동으로 예외 처리됩니다.
+        # 필요한 필드만 업데이트
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
         instance.save()
-        # 데이터가 성공적으로 수정된 후, 수정된 인스턴스 반환
         return instance
-
-    def validate(self, attrs):
-        # 인증된 사용자만 접근할 수 있도록 처리
-        request = self.context.get("request")  # context에서 request 객체를 가져옴
-        if request and not request.user.is_authenticated:
-            raise AuthenticationFailed({"message": "인증이 필요합니다."})
-        return attrs
 
 
 # 🍒 로그아웃
