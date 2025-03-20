@@ -1,7 +1,9 @@
 from django.urls import path
 
 from applications.views import (
+    ApplicationAbsenceView,
     ApplicationApproveRejectView,
+    ApplicationAttendView,
     ApplicationDetailView,
     ApplicationListCreateView,
     ApplicationRejectView,
@@ -17,5 +19,13 @@ urlpatterns = [
     ),
     path(
         "<int:pk>/rejected/", ApplicationRejectView.as_view(), name="application-reject"
+    ),
+    path(
+        "<int:pk>/attended/", ApplicationAttendView.as_view(), name="application-attend"
+    ),
+    path(
+        "<int:pk>/absence/",
+        ApplicationAbsenceView.as_view(),
+        name="application-absence",
     ),
 ]

@@ -10,7 +10,9 @@ class Application(BaseModel):
     STATUS_CHOICES = [
         ("pending", "승인 대기"),
         ("approved", "승인 완료"),
-        ("rejected", "거절됨"),
+        ("rejected", "승인 거절"),
+        ("attended", "참석"),
+        ("absence", "불참"),
     ]
 
     user = models.ForeignKey(
