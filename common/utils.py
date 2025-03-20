@@ -34,11 +34,9 @@ def validate_file_extension(file, instance_type):
 
 # S3 에 이미지 업로드 후 URL 반환
 def upload_file_to_s3(file, instance_type, object_identifier):
-    validation_result = validate_file_extension(file, instance_type)
-    if validation_result is None:
-        raise ValueError(f"Invalid file extension: {file.name.split(".")[-1].lower()}")
+    validate_file_extension(file, instance_type)
 
-    file_name, file_extension = validation_result
+    file_extension = file.name.split(".")[-1].lower()
     new_filename = f"{uuid.uuid4()}.{file_extension}"
 
     # S3 저장 경로 설정
@@ -52,7 +50,7 @@ def upload_file_to_s3(file, instance_type, object_identifier):
         raise ValueError(f"Invalid instance type: {instance_type}")
 
     try:
-        base.s3_client.upload_fileobj(file, base.AWS_STORAGE_BUCKET_NAME, s3_path)
+        base.s3_client.upload_fileobj(file, base.AWS_S3_BUCKET_NAME, s3_path)
         return f"{base.AWS_S3_CUSTOM_DOMAIN}/{s3_path}"
     except Exception as e:
         raise RuntimeError(f"S3 Upload Error: {e}")
@@ -62,7 +60,7 @@ def upload_file_to_s3(file, instance_type, object_identifier):
 def delete_file_from_s3(image_url):
     try:
         s3_path = image_url.replace(base.AWS_S3_CUSTOM_DOMAIN + "/", "")
-        base.s3_client.delete_object(Bucket=base.AWS_STORAGE_BUCKET_NAME, Key=s3_path)
+        base.s3_client.delete_object(Bucket=base.AWS_S3_BUCKET_NAME, Key=s3_path)
         return True
     except Exception as e:
         raise RuntimeError(f"S3 Delete Error: {e}")
