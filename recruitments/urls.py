@@ -3,6 +3,8 @@ from django.urls import path
 from .views import (
     RecruitmentCreateView,
     RecruitmentDetailView,
+    RecruitmentImageDeleteView,
+    RecruitmentImageView,
     RecruitmentListView,
     RecruitmentSearchView,
     RecruitmentUpdateView,
@@ -15,5 +17,15 @@ urlpatterns = [
     path("create/", RecruitmentCreateView.as_view(), name="recruitment-create"),
     path(
         "update/<int:pk>/", RecruitmentUpdateView.as_view(), name="recruitment-update"
+    ),
+    path(
+        "<int:recruitment_id>/images/",
+        RecruitmentImageView.as_view(),
+        name="recruitment-image",
+    ),
+    path(
+        "images/<int:image_id>/",
+        RecruitmentImageDeleteView.as_view(),
+        name="recruitment-image-delete",
     ),
 ]
