@@ -205,3 +205,9 @@ class UserDeleteSerializer(serializers.Serializer):
         if not user.check_password(value):
             raise serializers.ValidationError("비밀번호가 올바르지 않습니다.")
         return value
+
+
+class UserProfileImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "profile_image"]
