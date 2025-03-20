@@ -1,20 +1,10 @@
 from rest_framework import serializers
 
-from shelters.models import Shelter, ShelterImage
-
-
-# ✅ 보호소 이미지 시리얼라이저
-class ShelterImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ShelterImage
-        fields = ["id", "image_url", "image_type"]
+from shelters.models import Shelter
 
 
 # ✅ 보호소 시리얼라이저 (기본 정보)
 class ShelterSerializer(serializers.ModelSerializer):
-    images = ShelterImageSerializer(
-        many=True, read_only=True
-    )  # related_name="images" 사용
     owner_name = serializers.CharField(source="user.name", read_only=True)
     contact_number = serializers.CharField(source="user.contact_number", read_only=True)
 
@@ -30,7 +20,6 @@ class ShelterSerializer(serializers.ModelSerializer):
             "business_registration_email",
             "contact_number",
             "business_license_file",
-            "images",
             "owner_name",
         ]
 
