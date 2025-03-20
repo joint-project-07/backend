@@ -25,7 +25,7 @@ class HistoryAPIView(APIView):
 
         if not histories.exists():
             return Response(
-                {"message": "완료한 봉사활동 기록이 없습니다."},
+                {"error": "완료한 봉사활동 기록이 없습니다."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
