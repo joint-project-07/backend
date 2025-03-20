@@ -203,6 +203,7 @@ MEDIA_URL = "https://{AWS_S3_CUSTOM_DOMAIN}/"
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:5173",
+    "http://223.130.151.137",
 ]
 
 CORS_ALLOW_METHODS = (
