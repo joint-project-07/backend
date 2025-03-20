@@ -50,3 +50,9 @@ class ShelterCreateUpdateSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
         return instance
+
+
+class ShelterBusinessLicenseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Shelter
+        fields = ["id", "business_license_file"]

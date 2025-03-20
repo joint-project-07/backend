@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     MyShelterDetailView,
+    ShelterBusinessLicenseView,
     ShelterDetailView,
     ShelterListView,
     ShelterSearchView,
@@ -16,4 +17,9 @@ urlpatterns = [
     path("<int:pk>/", ShelterDetailView.as_view(), name="shelter-detail"),
     # 🧀 보호소 정보 조회 및 수정(GET,PATCH)
     path("me/", MyShelterDetailView.as_view(), name="my-shelter-detail"),
+    path(
+        "license/",
+        ShelterBusinessLicenseView.as_view(),
+        name="shelter-business-license",
+    ),
 ]
