@@ -1,8 +1,10 @@
 import random
 
 from django.conf import settings
+from django.contrib.sites import requests
 from django.core.cache import cache
 from django.core.mail import send_mail
+from django.utils.crypto import get_random_string
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
@@ -53,6 +55,22 @@ class SignupView(APIView):
         },
     )
     def post(self, request):
+
+        # 이메일과 전화번호 중복 체크
+        email = request.data.get("email")
+        contact_number = request.data.get("contact_number")
+
+        if User.objects.filter(email=email).exists():
+            return Response(
+                {"email": "이미 사용 중인 이메일입니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if User.objects.filter(contact_number=contact_number).exists():
+            return Response(
+                {"contact_number": "이미 등록된 전화번호입니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = SignupSerializer(data=request.data)
         # 유효성 검사 및 데이터 저장
         if serializer.is_valid():
@@ -76,7 +94,7 @@ class EmailCheckView(APIView):
         request=EmailCheckSerializer,
         responses={
             200: {"example": {"message": "사용 가능한 이메일입니다."}},
-            400: {"example": {"email": ["이미 사용 중인 이메일입니다."]}},
+            400: {"example": {"email": "이미 사용 중인 이메일입니다."}},
             403: {"example": {"message": "이미 로그인되어 있습니다."}},
         },
     )
@@ -89,6 +107,15 @@ class EmailCheckView(APIView):
         serializer = EmailCheckSerializer(data=request.data)
 
         if serializer.is_valid():
+            email = serializer.validated_data["email"]
+
+            # 이메일 중복 확인 (뷰에서 처리)
+            if User.objects.filter(email=email).exists():
+                return Response(
+                    {"email": "이미 사용 중인 이메일입니다."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             return Response(
                 {"message": "사용 가능한 이메일입니다."},
                 status=status.HTTP_200_OK,
@@ -108,47 +135,41 @@ class EmailConfirmationView(APIView):
     🍒이메일 인증 확인 API
     """
 
+    @extend_schema(request=EmailConfirmationSerializer, responses={})
+    def send_verification_email(self, email):
+
+        verification_code = random.randint(100000, 999999)
+
+        subject = "이메일 인증을 완료해주세요."
+        message = f"""
+        <html>
+            <body>
+                <h1>이메일 인증</h1>
+                <p>아래 코드를 입력하여 이메일 인증을 완료해주세요.</p>
+                <p><strong>{verification_code}</strong></p>
+            </body>
+        </html>
+        """
+
+        send_mail(
+            subject,
+            message,
+            settings.EMAIL_HOST_USER,
+            [email],
+            fail_silently=False,
+            html_message=message,
+        )
+
+        cache.set(f"email_verification_code_{verification_code}", email, timeout=300)
+
     @extend_schema(
         request=EmailConfirmationSerializer,
         responses={
             200: {"example": {"message": "이메일 인증을 위한 코드가 전송되었습니다."}},
             403: {"example": {"message": "이미 로그인되어 있습니다."}},
-            400: {"example": {"email": ["이미 사용 중인 이메일입니다."]}},
+            400: {"example": {"email": "이미 사용 중인 이메일입니다."}},
         },
     )
-    def send_verification_email(self, email):
-        try:
-            user = User.objects.get(email=email)
-            raise serializers.ValidationError(
-                {"email": ["이미 사용 중인 이메일입니다."]}
-            )
-        except User.DoesNotExist:
-            verification_code = random.randint(100000, 999999)
-
-            subject = "이메일 인증을 완료해주세요."
-            message = f"""
-            <html>
-                <body>
-                    <h1>이메일 인증</h1>
-                    <p>아래 코드를 입력하여 이메일 인증을 완료해주세요.</p>
-                    <p><strong>{verification_code}</strong></p>
-                </body>
-            </html>
-            """
-
-            send_mail(
-                subject,
-                message,
-                settings.EMAIL_HOST_USER,
-                [email],
-                fail_silently=False,
-                html_message=message,
-            )
-
-            cache.set(
-                f"email_verification_code_{verification_code}", email, timeout=300
-            )
-
     def post(self, request):
         if request.user.is_authenticated:
             raise PermissionDenied({"message": "이미 로그인되어 있습니다."})
@@ -157,6 +178,15 @@ class EmailConfirmationView(APIView):
 
         if serializer.is_valid():
             email = serializer.validated_data["email"]
+
+            # 이메일 중복 확인: 비즈니스 로직 (뷰에서 처리)
+            if User.objects.filter(email=email).exists():
+                return Response(
+                    {"email": "이미 사용 중인 이메일입니다."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # 이메일 인증 코드 전송
             self.send_verification_email(email)
             return Response(
                 {"message": "이메일 인증을 위한 코드가 전송되었습니다."},
@@ -232,14 +262,27 @@ class ShelterSignupView(APIView):
         },
     )
     def post(self, request):
-        # 시리얼라이저에 요청 데이터 전달
-        serializer = ShelterSignupSerializer(data=request.data)
+        # 이메일과 전화번호 중복 체크
+        email = request.data.get("email")
+        contact_number = request.data.get("contact_number")
 
+        if User.objects.filter(email=email).exists():
+            return Response(
+                {"email": "이미 사용 중인 이메일입니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if User.objects.filter(contact_number=contact_number).exists():
+            return Response(
+                {"contact_number": "이미 등록된 전화번호입니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = SignupSerializer(data=request.data)
         # 유효성 검사 및 데이터 저장
         if serializer.is_valid():
             serializer.save()
             return Response(
-                {"message": "보호소 회원가입이 완료되었습니다."},
+                {"message": "회원가입이 완료되었습니다."},
                 status=status.HTTP_201_CREATED,
             )
         # 유효성 검사 실패 시, 오류 반환
@@ -266,8 +309,8 @@ class EmailLoginView(APIView):
             },
             400: {
                 "example": {
-                    "email": ["사용자를 찾을 수 없습니다."],
-                    "password": ["비밀번호가 올바르지 않습니다."],
+                    "email": "사용자를 찾을 수 없습니다.",
+                    "password": "비밀번호가 올바르지 않습니다.",
                 }
             },
         },
@@ -276,12 +319,37 @@ class EmailLoginView(APIView):
         serializer = EmailLoginSerializer(data=request.data)
 
         if serializer.is_valid():
-            # 로그인 성공 시, 시리얼라이저에 작성된 validated_data 반환
+            email = serializer.validated_data["email"]
+            password = request.data.get("password")  # 비밀번호는 따로 가져옴
+
+            # 사용자 조회 (뷰에서 처리)
+            user = User.objects.filter(email=email).first()
+            if not user:
+                return Response(
+                    {"email": "사용자를 찾을 수 없습니다."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # 인증 (비밀번호 확인)
+            if not user.check_password(password):
+                # 로그인 성공 시, 시리얼라이저에 작성된 validated_data 반환
+                return Response(
+                    {"password": "비밀번호가 올바르지 않습니다."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            # JWT 토큰 발급
+            refresh = RefreshToken.for_user(user)
+
             return Response(
-                {"message": "로그인 성공", **serializer.validated_data},
+                {
+                    "message": "로그인 성공",
+                    "access_token": str(refresh.access_token),
+                    "refresh_token": str(refresh),
+                    "token_type": "Bearer",
+                },
                 status=status.HTTP_200_OK,
             )
-        # 유효성 검사 실패 시, 오류 반환
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -309,16 +377,45 @@ class KakaoLoginView(APIView):
         },
     )
     def post(self, request):
-        # 카카오 로그인 시리얼라이저를 통해 요청 데이터 검증
         serializer = KakaoLoginSerializer(data=request.data)
 
         # 시리얼라이저 검증
-        if serializer.is_valid():
-            # 유효성 검사를 통과하면 validated_data에 접근하여 JWT 토큰 반환
-            return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # 유효성 검사 실패 시, 오류 반환
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # 카카오 API 호출 (비즈니스 로직은 뷰에서 처리)
+        access_token = serializer.validated_data["access_token"]
+        user_info_url = "https://kapi.kakao.com/v2/user/me"
+        headers = {"Authorization": f"Bearer {access_token}"}
+        response = requests.get(user_info_url, headers=headers)
+
+        if response.status_code != 200:
+            return Response(
+                {"Error": "Internal Server Error"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        user_info = response.json()
+        provider_id = str(user_info.get("id"))
+
+        # 카카오 로그인한 사용자가 이미 등록되었는지 확인
+        user = User.objects.filter(provider_id=provider_id).first()
+        if not user:
+            return Response(
+                {"message": "카카오 계정이 등록되지 않은 사용자입니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # JWT 토큰 발급
+        refresh = RefreshToken.for_user(user)
+        return Response(
+            {
+                "access_token": str(refresh.access_token),
+                "refresh_token": str(refresh),
+                "token_type": "Bearer",
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class FindEmailView(APIView):
@@ -332,7 +429,7 @@ class FindEmailView(APIView):
         request=FindEmailSerializer,
         responses={
             200: {"example": {"email": "user@email.com"}},
-            400: {"example": {"message": ["이미 로그인되어 있습니다."]}},
+            400: {"example": {"message": "이미 로그인되어 있습니다."}},
             404: {"example": {"message": "사용자를 찾을 수 없습니다."}},
         },
     )
@@ -342,10 +439,28 @@ class FindEmailView(APIView):
             data=request.data, context={"request": request}
         )
 
-        # 시리얼라이저 검증
         if serializer.is_valid():
-            # 유효성 검사를 통과하면 validated_data에 접근하여 이메일 반환
-            return Response(serializer.validated_data, status=status.HTTP_200_OK)
+            # 로그인된 사용자인지 체크 (뷰에서 처리)
+            if request.user.is_authenticated:
+                return Response(
+                    {"message": "이미 로그인되어 있습니다."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            name = serializer.validated_data.get("name")
+            contact_number = serializer.validated_data.get("contact_number")
+
+            # 사용자 조회는 뷰에서 처리
+            user = User.objects.filter(name=name, contact_number=contact_number).first()
+
+            if not user:
+                return Response(
+                    {"message": "사용자를 찾을 수 없습니다."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            # 이메일 반환
+            return Response({"email": user.email}, status=status.HTTP_200_OK)
 
         # 유효성 검사 실패 시, 오류 반환
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -362,26 +477,57 @@ class ResetPasswordView(APIView):
         request=ResetPasswordSerializer,
         responses={
             200: {"example": {"message": "임시 비밀번호가 이메일로 전송되었습니다."}},
-            400: {"example": {"message": ["이미 로그인된 사용자입니다."]}},
+            400: {"example": {"message": "이미 로그인된 사용자입니다."}},
             404: {"example": {"message": "사용자를 찾을 수 없습니다."}},
             500: {"example": {"Error": "Internal Server Error"}},
         },
     )
     def post(self, request):
-        # 아이디 찾기 시리얼라이저를 통해 요청 데이터 검증
-        serializer = ResetPasswordSerializer(
-            data=request.data, context={"request": request}
-        )
+        serializer = ResetPasswordSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # 시리얼라이저 검증
-        if serializer.is_valid():
-            # 유효성 검사를 통과하면 validated_data에 접근하여 메시지 반환
+        if request.user.is_authenticated:
             return Response(
-                serializer.validated_data,
-                status=status.HTTP_200_OK,
+                {"message": "이미 로그인된 사용자입니다."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        contact_number = serializer.validated_data["contact_number"]
+        email = serializer.validated_data["email"]
+
+        # 사용자 조회
+        user = User.objects.filter(contact_number=contact_number, email=email).first()
+        if not user:
+            return Response(
+                {"message": "사용자를 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # 임시 비밀번호 생성
+        temp_password = get_random_string(length=8)
+        user.set_password(temp_password)  # 해싱하여 저장
+        user.save()
+
+        # 이메일 전송
+        try:
+            send_mail(
+                "펫모어헨즈에서 임시 비밀번호 알려드립니다.",  # 제목
+                f"임시 비밀번호는 {temp_password}입니다.",  # 내용
+                settings.EMAIL_HOST_USER,  # 발신자 이메일 (실제로 존재해야함)
+                [user.email],  # 수신자 이메일
+                fail_silently=False,
+            )
+        except Exception:
+            return Response(
+                {"Error": "Internal Server Error"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        return Response(
+            {"message": "임시 비밀번호가 이메일로 전송되었습니다."},
+            status=status.HTTP_200_OK,
+        )
 
 
 class ChangePasswordView(APIView):
@@ -401,19 +547,21 @@ class ChangePasswordView(APIView):
         },
     )
     def put(self, request):
-        user = request.user
         serializer = ChangePasswordSerializer(
-            user, data=request.data, context={"request": request}
+            data=request.data, context={"request": request}
         )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        if serializer.is_valid():
-            serializer.save()
-            return Response(
-                {"message": "비밀번호가 성공적으로 변경되었습니다."},
-                status=status.HTTP_200_OK,
-            )
+        # 비밀번호 변경 처리 (뷰에서 수행)
+        user = request.user
+        user.set_password(serializer.validated_data["new_password"])
+        user.save()
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"message": "비밀번호가 성공적으로 변경되었습니다."},
+            status=status.HTTP_200_OK,
+        )
 
 
 class UserView(APIView):
@@ -534,10 +682,12 @@ class UserDeleteView(APIView):
         serializer = UserDeleteSerializer(
             data=request.data, context={"request": request}
         )
-        if serializer.is_valid():
-            request.user.delete()  # 현재 로그인한 유저 삭제
-            return Response(
-                {"message": "회원 탈퇴가 완료되었습니다."}, status=status.HTTP_200_OK
-            )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # 회원 탈퇴 처리 (뷰에서 수행)
+        request.user.delete()
+
+        return Response(
+            {"message": "회원 탈퇴가 완료되었습니다."}, status=status.HTTP_200_OK
+        )

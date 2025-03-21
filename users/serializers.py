@@ -1,16 +1,8 @@
-import random
 import re
 
-from django.conf import settings
-from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.password_validation import validate_password
-from django.contrib.sites import requests
-from django.core.mail import send_mail
-from django.utils.crypto import get_random_string
 from rest_framework import serializers
-from rest_framework.exceptions import AuthenticationFailed, NotFound, PermissionDenied
-from rest_framework_simplejwt.tokens import RefreshToken
 
 from shelters.models import Shelter
 
@@ -58,14 +50,6 @@ class SignupSerializer(serializers.ModelSerializer):
                 "비밀번호와 비밀번호 확인이 일치하지 않습니다."
             ]
 
-        # 이메일 중복 체크 (한 번 더)
-        if User.objects.filter(email=data["email"]).exists():
-            errors["email"] = ["이미 사용 중인 이메일입니다."]
-
-        # 전화번호 중복 확인
-        if User.objects.filter(contact_number=data["contact_number"]).exists():
-            errors["contact_number"] = ["이미 등록된 전화번호입니다."]
-
         if errors:  # 하나라도 에러가 있으면 ValidationError 발생
             raise serializers.ValidationError(errors)
 
@@ -83,19 +67,10 @@ class SignupSerializer(serializers.ModelSerializer):
 class EmailCheckSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
-    def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("이미 사용 중인 이메일입니다.")
-        return value
-
 
 # 🍒이메일 인증 확인
 class EmailConfirmationSerializer(serializers.Serializer):
     email = serializers.EmailField()
-
-    def validate_email(self, value):
-        # 이메일 형식 검증
-        return value
 
 
 # 🍒이메일 인증 처리
@@ -151,68 +126,16 @@ class EmailLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()  # 필수값, 이메일 형식인지 검증
     password = serializers.CharField(write_only=True)
 
-    def validate(self, data):
-        email = data.get("email")  # 로그인 요청시 입력한 email,password 가져옴므
-        password = data.get("password")
-
-        # 이메일로 사용자 조회
-        user = User.objects.filter(email=email).first()
-        if not user:
-            raise serializers.ValidationError({"email": ["사용자를 찾을 수 없습니다."]})
-
-        # 인증 (비밀번호 확인)
-        user = authenticate(email=email, password=password)
-        if not user:
-            raise serializers.ValidationError(
-                {"password": ["비밀번호가 올바르지 않습니다."]}
-            )
-
-        # JWT Token 발급
-        refresh = RefreshToken.for_user(user)  # Refresh & Access Token 생성
-
-        return {
-            "access_token": str(refresh.access_token),
-            "refresh_token": str(refresh),
-            "token_type": "Bearer",
-        }
-
 
 # 🍒카카오 로그인
 class KakaoLoginSerializer(serializers.Serializer):
-    access_token = (
-        serializers.CharField()
-    )  # 사용자가 카카오 로그인을 통해 받은 access_token
+    access_token = serializers.CharField()
 
-    def validate(self, data):
-        access_token = data.get("access_token")
-
-        # 카카오 사용자 정보 요청
-        user_info_url = "https://kapi.kakao.com/v2/user/me"
-        headers = {"Authorization": f"Bearer {access_token}"}
-        response = requests.get(user_info_url, headers=headers)
-
-        if response.status_code != 200:
-            # 여기서 ValidationError 대신 예외를 던져서 500 에러로 처리하도록
-            raise Exception
-
-        user_info = response.json()
-        provider_id = str(user_info.get("id"))  # 카카오 고유 사용자 ID 추출
-
-        # 카카오 로그인한 사용자가 이미 등록되었는지 확인
-        user = User.objects.filter(provider_id=provider_id).first()
-
-        if not user:  # 사용자 없으면 회원가입 처리
-            raise serializers.ValidationError(
-                {"message": "카카오 계정이 등록되지 않은 사용자입니다."}
-            )
-
-        # JWT 토큰 발급
-        refresh = RefreshToken.for_user(user)
-        return {
-            "access_token": str(refresh.access_token),
-            "refresh_token": str(refresh),
-            "token_type": "Bearer",
-        }
+    def validate_access_token(self, value):
+        # Access Token 자체는 유효성 검증만 처리 (실제로 호출은 뷰에서)
+        if not value:
+            raise serializers.ValidationError("Access token이 필요합니다.")
+        return value
 
 
 # 🍒아이디 찾기
@@ -220,67 +143,11 @@ class FindEmailSerializer(serializers.Serializer):
     name = serializers.CharField()
     contact_number = serializers.CharField()
 
-    def validate(self, data):
-        # 로그인된 사용자는 아이디 찾기 API를 사용할 수 없음
-        if self.context.get("request").user.is_authenticated:
-            raise serializers.ValidationError({"message": "이미 로그인되어 있습니다."})
-
-        name = data.get("name")
-        contact_number = data.get("contact_number")
-        # 사용자를 이름과 전번으로 조회
-        user = User.objects.filter(name=name, contact_number=contact_number).first()
-
-        if not user:
-            # 사용자 정보가 일치하지 않으면 NotFound 예외 발생
-            raise NotFound({"message": "사용자를 찾을 수 없습니다."})
-
-        return {"email": user.email}
-
 
 # 🍒 임시비밀번호
 class ResetPasswordSerializer(serializers.Serializer):
     contact_number = serializers.CharField()
     email = serializers.EmailField()
-
-    def validate(self, data):
-        request = self.context.get("request")  # 뷰에서 전달된 request 객체
-        # 로그인된 사용자는 임시 비밀번호 요청을 할 수 없음
-        if request.user.is_authenticated:
-            raise serializers.ValidationError(
-                {"message": "이미 로그인된 사용자입니다."}
-            )
-
-        contact_number = data.get("contact_number")
-        email = data.get("email")
-
-        # 사용자 조회
-        user = User.objects.filter(contact_number=contact_number, email=email).first()
-
-        if not user:
-            # 사용자 존재하지 않으면 NotFound 예외 발생
-            raise NotFound({"message": "사용자를 찾을 수 없습니다."})
-
-        # 임시 비밀번호 생성
-        temp_password = get_random_string(length=8)  # 임시 비밀번호 (8자리)
-
-        # 임시 비밀번호를 설정하고 저장
-        user.set_password(temp_password)  # 해싱하여 저장
-        user.save()
-
-        # 이메일로 임시 비밀번호 전송
-        try:
-            send_mail(
-                "펫모어헨즈에서 임시 비밀번호 알려드립니다.",  # 제목
-                f"임시 비밀번호는 {temp_password}입니다.",  # 내용
-                settings.EMAIL_HOST_USER,  # 발신자 이메일 (실제로 존재해야함)
-                [user.email],  # 수신자 이메일
-                fail_silently=False,  # 이메일 전송 실패 시 except으로
-            )
-        except Exception:
-            # 이메일 전송 실패 시 500 에러 발생
-            raise Exception
-
-        return {"message": "임시 비밀번호가 이메일로 전송되었습니다."}
 
 
 # 🍒비밀번호 변경
@@ -299,12 +166,6 @@ class ChangePasswordSerializer(serializers.Serializer):
         """비밀번호 정책 검증"""
         validate_password(value)  # Django 기본 비밀번호 검증 사용
         return value
-
-    def update(self, instance, validated_data):
-        """비밀번호 변경 처리"""
-        instance.set_password(validated_data["new_password"])
-        instance.save()
-        return instance
 
 
 # 🍒사용자 정보 조회
@@ -336,9 +197,6 @@ class LogoutSerializer(serializers.Serializer):
 # 🍒회원 탈퇴
 class UserDeleteSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
-
-    class Meta:
-        model = User  # 여기서 모델을 지정
 
     def validate_password(self, value):
         user = self.context["request"].user
