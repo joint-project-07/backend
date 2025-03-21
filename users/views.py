@@ -11,7 +11,11 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import (
+    BlacklistedToken,
+    OutstandingToken,
+    RefreshToken,
+)
 
 from .models import User
 from .serializers import (  # UserUpdateSerializer,
@@ -684,6 +688,12 @@ class UserDeleteView(APIView):
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+
+        # 사용자 탈퇴 후, 해당 사용자의 JWT 토큰을 블랙리스트에 추가
+        for token in OutstandingToken.objects.filter(user=user):
+            BlacklistedToken.objects.get_or_create(token=token)
 
         # 회원 탈퇴 처리 (뷰에서 수행)
         request.user.delete()
