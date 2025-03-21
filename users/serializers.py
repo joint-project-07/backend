@@ -202,20 +202,8 @@ class KakaoLoginSerializer(serializers.Serializer):
         user = User.objects.filter(provider_id=provider_id).first()
 
         if not user:  # 사용자 없으면 회원가입 처리
-            nickname = user_info.get("properties", {}).get("nickname", "NoName")
-            email = user_info.get("kakao_account", {}).get("email", None)
-            if not email:
-                raise serializers.ValidationError(
-                    {"message": "이메일 정보가 필요합니다."}
-                )
-
-            # 새로운 사용자 생성
-            user = User.objects.create(
-                email=email,  # 카카오에서 받은 이메일
-                name=nickname,  # 카카오에서 받은 닉네임
-                provider_id=provider_id,  # 카카오 고유 사용자 ID
-                is_shelter=False,  # 기본값
-                kakao_login=True,  # 카카오 로그인으로 가입한 사용자임을 표시
+            raise serializers.ValidationError(
+                {"message": "카카오 계정이 등록되지 않은 사용자입니다."}
             )
 
         # JWT 토큰 발급
@@ -326,21 +314,18 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ["id", "email", "name", "contact_number", "profile_image"]
 
 
-# 🍒사용자 정보 수정
-class UserUpdateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ["name", "profile_image"]
-        read_only_fields = ["email", "contact_number"]  # 이메일과 전화번호는 수정 불가
-
-    def update(self, instance, validated_data):
-        # 이메일은 수정 불가하므로 자동으로 예외 처리됩니다.
-        # 필요한 필드만 업데이트
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-
-        instance.save()
-        return instance
+# # 🍒사용자 정보 수정 (현재 사용x)
+# class UserUpdateSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = User
+#         fields = ["name", "profile_image"]
+#         read_only_fields = ["email", "contact_number"]  # 이메일과 전화번호는 수정 불가
+#
+#     def update(self, instance, validated_data):
+#         # name만 업데이트 (profile_image 관련 코드 제거)
+#         instance.name = validated_data.get("name", instance.name)
+#         instance.save()
+#         return instance
 
 
 # 🍒 로그아웃
