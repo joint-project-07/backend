@@ -575,7 +575,6 @@ class ChangePasswordView(APIView):
 
 class UserView(APIView):
     permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]
     """
     🍒 사용자 정보 조회/수정 API
     """
