@@ -177,7 +177,7 @@ class EmailLoginSerializer(serializers.Serializer):
         }
 
 
-# 🍒카카오 로그인과 회원가입
+# 🍒카카오 로그인
 class KakaoLoginSerializer(serializers.Serializer):
     access_token = (
         serializers.CharField()

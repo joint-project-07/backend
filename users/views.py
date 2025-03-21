@@ -289,7 +289,7 @@ class KakaoLoginView(APIView):
     permission_classes = [AllowAny]
     serializer_class = KakaoLoginSerializer
     """
-    🍒 카카오 로그인과 회원가입API
+    🍒 카카오 로그인API
     """
 
     @extend_schema(
