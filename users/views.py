@@ -12,7 +12,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import User
-from .serializers import (
+from .serializers import (  # UserUpdateSerializer,
     ChangePasswordSerializer,
     EmailCheckSerializer,
     EmailConfirmationSerializer,
@@ -25,7 +25,6 @@ from .serializers import (
     SignupSerializer,
     UserDeleteSerializer,
     UserSerializer,
-    UserUpdateSerializer,
     VerifyEmailSerializer,
 )
 
@@ -290,7 +289,7 @@ class KakaoLoginView(APIView):
     permission_classes = [AllowAny]
     serializer_class = KakaoLoginSerializer
     """
-    🍒 카카오 로그인과 회원가입API
+    🍒 카카오 로그인API
     """
 
     @extend_schema(
@@ -304,7 +303,7 @@ class KakaoLoginView(APIView):
                 }
             },
             400: {
-                "example": {"message": ["이메일 정보가 필요합니다."]},
+                "example": {"message": ["카카오 계정이 등록되지 않은 사용자입니다."]},
                 500: {"example": {"Error": "Internal Server Error"}},
             },
         },
@@ -438,49 +437,51 @@ class UserView(APIView):
         }
         return Response(response_data, status=status.HTTP_200_OK)
 
-    @extend_schema(
-        request=UserUpdateSerializer,
-        responses={
-            200: {
-                "example": {
-                    "message": "사용자 정보가 성공적으로 수정되었습니다.",
-                    "user": {
-                        "id": 29,
-                        "email": "user@gmail.com",
-                        "name": "string33",
-                        "contact_number": "01044444444",
-                        "profile_image": "string",
-                    },
-                }
-            }
-        },
-    )
-    def put(self, request):
-        # 인증된 사용자 정보 가져오기
-        user = request.user
 
-        # UserUpdateSerializer에 현재 사용자 정보와 업데이트할 데이터를 전달하여 시리얼라이징
-        serializer = UserUpdateSerializer(
-            user, data=request.data, context={"request": request}
-        )
-
-        # 시리얼라이저 유효성 검사
-        if serializer.is_valid():
-            # 정보가 유효하면, 업데이트 작업 후 결과 반환
-            updated_user = serializer.save()
-
-            # 수정된 사용자 객체를 시리얼라이즈 후 응답
-            updated_data = UserSerializer(updated_user).data
-            return Response(
-                {
-                    "message": "사용자 정보가 성공적으로 수정되었습니다.",
-                    "user": updated_data,
-                },
-                status=status.HTTP_200_OK,
-            )
-
-        # 유효성 검사 실패 시, 오류 반환
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+# 현재 사용 x
+# @extend_schema(
+#     request=UserUpdateSerializer,
+#     responses={
+#         200: {
+#             "example": {
+#                 "message": "사용자 정보가 성공적으로 수정되었습니다.",
+#                 "user": {
+#                     "id": 29,
+#                     "email": "user@gmail.com",
+#                     "name": "string33",
+#                     "contact_number": "01044444444",
+#                     "profile_image": "string",
+#                 },
+#             }
+#         }
+#     },
+# )
+# def put(self, request):
+#     # 인증된 사용자 정보 가져오기
+#     user = request.user
+#
+#     # name 필드 포함해야함
+#     serializer = UserUpdateSerializer(
+#         user, data=request.data
+#     )
+#
+#     # 시리얼라이저 유효성 검사
+#     if serializer.is_valid():
+#         # 정보가 유효하면, 업데이트 작업 후 결과 반환
+#         updated_user = serializer.save()
+#
+#         # 수정된 사용자 객체를 시리얼라이즈 후 응답
+#         updated_data = UserSerializer(updated_user).data
+#         return Response(
+#             {
+#                 "message": "사용자 정보가 성공적으로 수정되었습니다.",
+#                 "user": updated_data,
+#             },
+#             status=status.HTTP_200_OK,
+#         )
+#
+#     # 유효성 검사 실패 시, 오류 반환
+#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class LogoutView(APIView):
