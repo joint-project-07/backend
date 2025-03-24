@@ -45,6 +45,7 @@ ALLOWED_HOSTS: list[str] = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
+    "storages",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -189,16 +190,21 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER  # 기본 발신자 이메일
 AWS_ACCESS_KEY_ID = os.getenv("NCP_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("NCP_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = os.getenv("NCP_BUCKET_NAME")
-AWS_S3_ENDPOINT_URL = (
-    "https://kr.object.ncloudstorage.com"  # NCP Object Storage 엔드포인트
-)
-AWS_S3_CUSTOM_DOMAIN = (
-    f"{AWS_STORAGE_BUCKET_NAME}.kr.object.ncloudstorage.com"  # 기본 도메인
-)
+AWS_S3_REGION_NAME = "kr-standard"
+AWS_S3_ENDPOINT_URL = "https://kr.object.ncloudstorage.com"
+AWS_S3_DEFAULT_ACL = "public-read"
+MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.kr.object.ncloudstorage.com/"
 
-DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+# NCP Object Storage 설정
 
-MEDIA_URL = "https://{AWS_S3_CUSTOM_DOMAIN}/"
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
