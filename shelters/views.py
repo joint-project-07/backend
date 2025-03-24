@@ -57,36 +57,42 @@ class ShelterDetailView(APIView):
         return Response({"shelter": serializer.data}, status=status.HTTP_200_OK)
 
 
-# 🧀 보호소 생성 (POST /api/shelters/create/)
-class ShelterCreateView(APIView):
+# # 🧀 보호소 생성 (POST /api/shelters/create/)
+# class ShelterCreateView(APIView):
+#     permission_classes = [IsAuthenticated]
+#
+#     def post(self, request):
+#         serializer = ShelterCreateUpdateSerializer(
+#             data=request.data, context={"request": request}
+#         )
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(
+#                 {
+#
+#                     "message": "보호소가 성공적으로 생성되었습니다.",
+#                     "shelter_id": serializer.instance.id,
+#                 },
+#                 status=status.HTTP_201_CREATED,
+#             )
+#         return Response(
+#             {"message": serializer.errors},
+#             status=status.HTTP_400_BAD_REQUEST,
+#         )
+
+
+class MyShelterDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        serializer = ShelterCreateUpdateSerializer(
-            data=request.data, context={"request": request}
-        )
-        if serializer.is_valid():
-            serializer.save()
-            return Response(
-                {
-                    "code": 201,
-                    "message": "보호소가 성공적으로 생성되었습니다.",
-                    "shelter_id": serializer.instance.id,
-                },
-                status=status.HTTP_201_CREATED,
-            )
-        return Response(
-            {"code": 400, "message": serializer.errors},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    # 🧀 보호소 정보 조회 (GET /api/shelters/me/)
+    def get(self, request):
+        instance = get_object_or_404(Shelter, user=request.user)
+        serializer = ShelterSerializer(instance)
+        return Response({"shelter": serializer.data}, status=status.HTTP_200_OK)
 
-
-# 🧀 보호소 수정 (PATCH /api/shelters/{shelter_id}/update/)
-class ShelterUpdateView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def patch(self, request, pk):
-        instance = get_object_or_404(Shelter, pk=pk)
+    # 🧀 보호소 수정 (PATCH /api/shelters/{shelter_id}/update/)
+    def patch(self, request):
+        instance = get_object_or_404(Shelter, user=request.user)
         serializer = ShelterCreateUpdateSerializer(
             instance, data=request.data, partial=True, context={"request": request}
         )
@@ -94,25 +100,12 @@ class ShelterUpdateView(APIView):
             serializer.save()
             return Response(
                 {
-                    "code": 200,
                     "message": "보호소 정보가 수정되었습니다.",
                     "shelter": serializer.data,
                 },
                 status=status.HTTP_200_OK,
             )
         return Response(
-            {"code": 400, "message": serializer.errors},
+            {"message": serializer.errors},
             status=status.HTTP_400_BAD_REQUEST,
-        )
-
-
-# 🧀 보호소 정보 조회 (GET /api/shelters/me/)
-class MyShelterDetailView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        instance = get_object_or_404(Shelter, user=request.user)
-        serializer = ShelterSerializer(instance)
-        return Response(
-            {"code": 200, "shelter": serializer.data}, status=status.HTTP_200_OK
         )
