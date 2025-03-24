@@ -1,4 +1,5 @@
 from rest_framework import serializers
+
 from recruitments.models import Recruitment
 
 
@@ -29,11 +30,11 @@ class RecruitmentCreateUpdateSerializer(serializers.ModelSerializer):
             "date",
             "start_time",
             "end_time",
-            "type",   # ✅ 필수 값으로 설정
+            "type",  # ✅ 필수 값으로 설정
             "supplies",
         ]
         extra_kwargs = {
-            'type': {'required': True},  # ✅ 필수 값 설정
+            "type": {"required": True},  # ✅ 필수 값 설정
         }
 
     def create(self, validated_data):
