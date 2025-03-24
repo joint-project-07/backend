@@ -63,3 +63,6 @@ class RecruitmentImage(BaseModel):
 
     def __str__(self):
         return f"{self.recruitment.name} - {self.id}"
+
+    class Meta:
+        db_table = "recruitment_images"
