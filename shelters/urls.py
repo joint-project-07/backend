@@ -5,7 +5,6 @@ from .views import (
     ShelterDetailView,
     ShelterListView,
     ShelterSearchView,
-    ShelterUpdateView,
 )
 
 urlpatterns = [
@@ -15,8 +14,6 @@ urlpatterns = [
     path("search/", ShelterSearchView.as_view(), name="shelter-search"),
     # 🧀 보호소 상세 조회 (GET)
     path("<int:pk>/", ShelterDetailView.as_view(), name="shelter-detail"),
-    # 🧀 보호소 정보 수정 (PATCH)
-    path("me/", ShelterUpdateView.as_view(), name="shelter-update"),
-    # 🧀 보호소 정보 조회 (GET)
+    # 🧀 보호소 정보 조회 및 수정(GET,PATCH)
     path("me/", MyShelterDetailView.as_view(), name="my-shelter-detail"),
 ]
