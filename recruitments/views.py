@@ -1,10 +1,15 @@
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from .models import Recruitment
-from .serializers import RecruitmentSerializer
+from common.utils import delete_file_from_s3, upload_file_to_s3, validate_file_extension
+
+from .models import Recruitment, RecruitmentImage
+from .serializers import RecruitmentImageSerializer, RecruitmentSerializer
 
 
 # 🧀 봉사활동 검색
@@ -110,3 +115,94 @@ class RecruitmentUpdateView(generics.UpdateAPIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class RecruitmentImageView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+
+    # 봉사 활동 이미지 업로드
+    @extend_schema(
+        summary="봉사활동 이미지 업로드",
+        request={"multipart/form-data": {"images": "file[]"}},
+        responses={201: RecruitmentImageSerializer(many=True)},
+    )
+    def post(self, request, recruitment_id):
+        files = request.FILES.getlist("image")
+
+        if not files:
+            return Response(
+                {"error": "이미지를 업로드해야 합니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # 해당 봉사 활동 일정이 존재하는지 확인
+        recruitment = Recruitment.objects.filter(id=recruitment_id).first()
+        if not recruitment:
+            return Response(
+                {"error": "해당 봉사활동을 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        uploaded_images = []
+
+        for file in files:
+            try:
+                validate_file_extension(file, "recruitments")  # 파일 검증
+                image_url = upload_file_to_s3(file, "recruitments", recruitment_id)
+                image = RecruitmentImage.objects.create(
+                    recruitment=recruitment, image_url=image_url
+                )
+                uploaded_images.append(image)
+            except ValueError as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            RecruitmentImageSerializer(uploaded_images, many=True).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    # 특정 봉사활동의 모든 이미지 조회
+    @extend_schema(
+        summary="봉사활동 이미지 조회",
+        responses={200: RecruitmentImageSerializer(many=True)},
+    )
+    def get(self, request, recruitment_id):
+        images = RecruitmentImage.objects.filter(recruitment_id=recruitment_id)
+
+        if not images.exists():
+            return Response(
+                {"error": "해당 봉사활동에 등록된 이미지가 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(
+            RecruitmentImageSerializer(images, many=True).data,
+            status=status.HTTP_200_OK,
+        )
+
+
+# 봉사 활동 이미지 개별 삭제
+class RecruitmentImageDeleteView(APIView):
+    @extend_schema(summary="봉사활동 이미지 삭제", responses={204: None})
+    def delete(self, request, image_id):
+        image = RecruitmentImage.objects.filter(id=image_id).first()
+
+        if not image:
+            return Response(
+                {"error": "해당 이미지를 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # S3 에서 삭제
+        try:
+            delete_file_from_s3(image.image_url)
+            image.delete()
+            return Response(
+                {"message": "이미지 삭제가 완료되었습니다."},
+                status=status.HTTP_204_NO_CONTENT,
+            )
+        except Exception as e:
+            return Response(
+                {"error": "이미지 삭제가 실패하였습니다.", "details": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )

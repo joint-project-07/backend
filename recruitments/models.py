@@ -54,3 +54,15 @@ class Recruitment(BaseModel):
 
     class Meta:
         db_table = "recruitments"
+
+
+class RecruitmentImage(BaseModel):
+    id = models.AutoField(primary_key=True)
+    recruitment = models.ForeignKey(Recruitment, on_delete=models.CASCADE)
+    image_url = models.URLField()
+
+    def __str__(self):
+        return f"{self.recruitment.name} - {self.id}"
+
+    class Meta:
+        db_table = "recruitment_images"

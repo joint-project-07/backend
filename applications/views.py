@@ -41,19 +41,28 @@ class ApplicationListCreateView(APIView):
         request=ApplicationCreateSerializer,
         responses={
             201: ApplicationSerializer,
-            403: {"example": {"detail": "봉사활동 신청은 회원만 가능합니다."}},
-            404: {"example": {"detail": "해당 봉사활동을 찾을 수 없습니다."}},
+            400: {
+                "example": {
+                    "error": "입력 데이터가 올바르지 않습니다.",
+                    "details": {"recruitment": ["이 필드는 필수 항목입니다."]},
+                }
+            },
+            403: {"example": {"error": "봉사활동 신청은 회원만 가능합니다."}},
+            404: {"example": {"error": "해당 봉사활동을 찾을 수 없습니다."}},
             409: {
                 "example": {
-                    "detail": "이미 신청한 봉사활동이거나, 기존 신청과 시간이 중복됩니다."
+                    "error": "이미 신청한 봉사활동이거나, 기존 신청과 시간이 중복됩니다."
                 }
             },
         },
     )
     def post(self, request):
-        if not request.user.is_authenticated:
+        user = request.user  # 현재 로그인한 사용자 정보 가져오기
+
+        # 봉사자로 회원가입한 사용자만 신청할 수 있도록 제한
+        if user.is_shelter:
             return Response(
-                {"detail": "봉사활동 신청은 회원만 가능합니다."},
+                {"error": "보호소 관계자는 봉사 신청을 할 수 없습니다."},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -61,16 +70,24 @@ class ApplicationListCreateView(APIView):
             data=request.data, context={"request": request}
         )
 
+        # serializer 가 유효하지 않을 경우, 필드별 오류 메세지 반환
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "error": "입력 데이터가 올바르지 않습니다.",
+                    "details": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        recruitments_id = request.data.get("recruitment")
+        recruitments_id = request.data.get("recruitment")  # 신청할 봉사활동 ID 가져오기
 
+        # 해당 봉사활동이 존재하는지 확인
         try:
             recruitment = Recruitment.objects.get(id=recruitments_id)
         except Recruitment.DoesNotExist:
             return Response(
-                {"detail": "해당 봉사활동을 찾을 수 없습니다."},
+                {"error": "해당 봉사활동을 찾을 수 없습니다."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -79,28 +96,36 @@ class ApplicationListCreateView(APIView):
             user=request.user, recruitment=recruitment
         ).exists():
             return Response(
-                {"detail": "이미 신청한 봉사활동 입니다."},
+                {"error": "이미 신청한 봉사활동 입니다."},
                 status=status.HTTP_409_CONFLICT,
             )
 
         # 기존 신청한 봉사활동과 시간이 겹치는지 확인
-        user_applications = Application.objects.filter(user=request.user)
-        for application in user_applications:
-            existing_recruitment = application.recruitment
-            if (
-                existing_recruitment.start_time < recruitment.end_time
-                and recruitment.start_time < existing_recruitment.end_time
-            ):
-                return Response(
-                    {"detail": "중복된 시간에 신청한 봉사활동이 있습니다."},
-                    status=status.HTTP_409_CONFLICT,
-                )
+        overlapping_applications = Application.objects.filter(
+            user=request.user,
+            recruitment__start_time__lt=recruitment.end_time,
+            recruitment__end_time__gt=recruitment.start_time,
+        ).exists()
 
+        if overlapping_applications:
+            return Response(
+                {"error": "중복된 시간에 신청한 봉사활동이 있습니다."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        try:
             application = serializer.save()
             return Response(
                 ApplicationSerializer(application).data, status=status.HTTP_201_CREATED
             )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {
+                    "error": "신청을 처리하는 중 오류가 발생했습니다.",
+                    "details": str(e),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class ApplicationDetailView(APIView):
@@ -110,7 +135,7 @@ class ApplicationDetailView(APIView):
         description="특정 봉사 신청 정보를 조회합니다.",
         responses={
             200: ApplicationSerializer(many=True),
-            404: {"example": {"detail": "해당 신청을 찾을 수 없습니다."}},
+            404: {"example": {"error": "해당 신청을 찾을 수 없습니다."}},
         },
     )
     def get(self, request, pk):
@@ -118,7 +143,7 @@ class ApplicationDetailView(APIView):
             application = Application.objects.get(pk=pk, user=request.user)
         except Application.DoesNotExist:
             return Response(
-                {"detail": "해당 신청을 찾을 수 없습니다."},
+                {"error": "해당 신청을 찾을 수 없습니다."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -130,8 +155,8 @@ class ApplicationDetailView(APIView):
         summary="봉사 신청 취소",
         description="특정 봉사 신청을 취소(삭제)합니다.",
         responses={
-            200: {"example": {"detail": "신청이 취소되었습니다."}},
-            404: {"example": {"detail": "해당 봉사 신청 내역을 찾을 수 없습니다."}},
+            200: {"example": {"error": "신청이 취소되었습니다."}},
+            404: {"example": {"error": "해당 봉사 신청 내역을 찾을 수 없습니다."}},
         },
     )
     def delete(self, request, pk):
@@ -139,7 +164,7 @@ class ApplicationDetailView(APIView):
             application = Application.objects.get(pk=pk, user=request.user)
         except Application.DoesNotExist:
             return Response(
-                {"detail": "해당 신청을 찾을 수 없습니다."},
+                {"error": "해당 신청을 찾을 수 없습니다."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -155,8 +180,8 @@ class ApplicationApproveRejectView(APIView):
         request=ApplicationSerializer,
         responses={
             200: ApplicationSerializer,
-            403: {"example": {"detail": "승인 권한이 없습니다."}},
-            404: {"example": {"detail": "해당 신청을 찾을 수 없습니다."}},
+            403: {"example": {"error": "승인 권한이 없습니다."}},
+            404: {"example": {"error": "해당 신청을 찾을 수 없습니다."}},
         },
     )
     def post(self, request, pk):
@@ -164,13 +189,13 @@ class ApplicationApproveRejectView(APIView):
             application = Application.objects.get(pk=pk)
         except Application.DoesNotExist:
             return Response(
-                {"detail": "해당 신청을 찾을 수 없습니다."},
+                {"error": "해당 신청을 찾을 수 없습니다."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
         if application.shelter.user != request.user:
             return Response(
-                {"detail": "승인 권한이 없습니다."}, status=status.HTTP_403_FORBIDDEN
+                {"error": "승인 권한이 없습니다."}, status=status.HTTP_403_FORBIDDEN
             )
 
         application.status = "approved"
@@ -188,8 +213,9 @@ class ApplicationRejectView(APIView):
         request=ApplicationRejectSerializer,
         responses={
             200: ApplicationSerializer,
-            403: {"example": {"detail": "거절 권한이 없습니다."}},
-            404: {"example": {"detail": "해당 신청을 찾을 수 없습니다."}},
+            400: {"example": {"error": "거절 사유를 입력해주세요."}},
+            403: {"example": {"error": "거절 권한이 없습니다."}},
+            404: {"example": {"error": "해당 신청을 찾을 수 없습니다."}},
         },
     )
     def post(self, request, pk):
@@ -197,19 +223,19 @@ class ApplicationRejectView(APIView):
             application = Application.objects.get(pk=pk)
         except Application.DoesNotExist:
             return Response(
-                {"detail": "해당 신청을 찾을 수 없습니다."},
+                {"error": "해당 신청을 찾을 수 없습니다."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
         if application.shelter.user != request.user:
             return Response(
-                {"detail": "거절 권한이 없습니다."}, status=status.HTTP_403_FORBIDDEN
+                {"error": "거절 권한이 없습니다."}, status=status.HTTP_403_FORBIDDEN
             )
 
         rejected_reason = request.data.get("rejected_reason", "").strip()
         if not rejected_reason:
             return Response(
-                {"detail": "거절 사유를 입력해주세요."},
+                {"error": "거절 사유를 입력해주세요."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -217,6 +243,72 @@ class ApplicationRejectView(APIView):
         application.rejected_reason = rejected_reason
         application.save()
 
+        return Response(
+            ApplicationSerializer(application).data, status=status.HTTP_200_OK
+        )
+
+
+class ApplicationAttendView(APIView):
+    # 봉사 활동 완료
+    @extend_schema(
+        summary="봉사 활동 완료 ",
+        description="보호소 관리자가 봉사 완료한 봉사자를 완료 처리합니다.",
+        request=ApplicationSerializer,
+        responses={
+            200: ApplicationSerializer,
+            403: {"example": {"error": "승인 권한이 없습니다."}},
+            404: {"example": {"error": "해당 봉사 활동을 찾을 수 없습니다."}},
+        },
+    )
+    def post(self, request, pk):
+        try:
+            application = Application.objects.get(pk=pk)
+        except Application.DoesNotExist:
+            return Response(
+                {"error": "해당 신청을 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if application.shelter.user != request.user:
+            return Response(
+                {"error": "승인 권한이 없습니다."}, status=status.HTTP_403_FORBIDDEN
+            )
+
+        application.status = "attended"
+        application.save()
+        return Response(
+            ApplicationSerializer(application).data, status=status.HTTP_200_OK
+        )
+
+
+class ApplicationAbsenceView(APIView):
+    # 봉사 활동 불참
+    @extend_schema(
+        summary="봉사 활동 불참",
+        description="보호소 관리자가 불참한 봉사자를 불참 처리합니다.",
+        request=ApplicationSerializer,
+        responses={
+            200: ApplicationSerializer,
+            403: {"example": {"error": "승인 권한이 없습니다."}},
+            404: {"example": {"error": "해당 봉사 활동을 찾을 수 없습니다."}},
+        },
+    )
+    def post(self, request, pk):
+        try:
+            application = Application.objects.get(pk=pk)
+        except Application.DoesNotExist:
+            return Response(
+                {"error": "해당 신청을 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if application.shelter.user != request.user:
+            return Response(
+                {"error": "승인 권한이 없습니다."}, status=status.HTTP_403_FORBIDDEN
+            )
+
+        application.status = "absence"
+        application.save()
         return Response(
             ApplicationSerializer(application).data, status=status.HTTP_200_OK
         )

@@ -30,11 +30,6 @@ class ShelterTypeChoices(models.TextChoices):
     NON_PROFIT = "non_profit", "Non-Profit"
 
 
-class ShelterFileTypeChoices(models.TextChoices):
-    PROFILE = "profile", "Profile"
-    GENERAL = "general", "General"
-
-
 class Shelter(BaseModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="shelter")
     name = models.CharField(
@@ -61,21 +56,3 @@ class Shelter(BaseModel):
 
     class Meta:
         db_table = "shelters"
-
-
-class ShelterImage(BaseModel):
-    shelter = models.ForeignKey(
-        Shelter, on_delete=models.CASCADE, related_name="images"
-    )
-    image_type = models.CharField(
-        max_length=20,
-        choices=ShelterFileTypeChoices.choices,
-        default=ShelterFileTypeChoices.GENERAL,
-    )
-    image_url = models.CharField(max_length=255, null=False)
-
-    def __str__(self):
-        return f"{self.shelter.name} - {self.image_type} - Image"
-
-    class Meta:
-        db_table = "shelter_images"

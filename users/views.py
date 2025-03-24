@@ -8,6 +8,7 @@ from django.utils.crypto import get_random_string
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -16,6 +17,8 @@ from rest_framework_simplejwt.tokens import (
     OutstandingToken,
     RefreshToken,
 )
+
+from common.utils import delete_file_from_s3, upload_file_to_s3, validate_file_extension
 
 from .models import User
 from .serializers import (  # UserUpdateSerializer,
@@ -30,6 +33,7 @@ from .serializers import (  # UserUpdateSerializer,
     ShelterSignupSerializer,
     SignupSerializer,
     UserDeleteSerializer,
+    UserProfileImageSerializer,
     UserSerializer,
     VerifyEmailSerializer,
 )
@@ -701,4 +705,105 @@ class UserDeleteView(APIView):
 
         return Response(
             {"message": "회원 탈퇴가 완료되었습니다."}, status=status.HTTP_200_OK
+        )
+
+
+class ProfileImageUploadDeleteView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+
+    # 유저 프로필 이미지 업로드
+    @extend_schema(
+        summary="유저 프로필 이미지 업로드",
+        request={"multipart/form-data": {"image": "file"}},
+        responses={201: UserProfileImageSerializer},
+    )
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        file = request.FILES.get("image")
+
+        if not file:
+            return Response(
+                {"error": "이미지를 업로드해야 합니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # 기존 이미지 삭제
+        if user.profile_image:
+            delete_file_from_s3(user.profile_image)
+            user.profile_image = None
+            user.save()
+
+        # 파일 검증 및 업로드
+        try:
+            validate_file_extension(file, "users")
+            s3_url = upload_file_to_s3(file, "users", user.id)
+        except ValueError as e:
+            return Response(
+                {"error": "업로드에 실패하였습니다.", "details": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # 새 이미지 저장
+        user.profile_image = s3_url
+        user.save()
+
+        return Response(
+            UserProfileImageSerializer(user).data, status=status.HTTP_201_CREATED
+        )
+
+    # 유저 프로필 이미지 삭제
+    @extend_schema(
+        summary="유저 프로필 이미지 삭제",
+        description="유저가 자신의 프로필 이미지를 삭제합니다.",
+        responses={
+            204: None,
+            400: {"example": {"error": "삭제 실패"}},
+            403: {"example": {"error": "권한 없음"}},
+            404: {"example": {"error": "이미지 없음"}},
+        },
+    )
+    def delete(self, request, *args, **kwargs):
+        user = request.user
+
+        if not user.profile_image:
+            return Response(
+                {"error": "삭제할 프로필 이미지가 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            delete_file_from_s3(user.profile_image)
+            user.profile_image = None
+            user.save()
+            return Response(
+                {"message": "이미지 삭제가 완료되었습니다."},
+                status=status.HTTP_204_NO_CONTENT,
+            )
+        except Exception as e:
+            return Response(
+                {"error": "이미지 삭제에 실패하였습니다.", "details": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class UserProfileImageView(APIView):
+    permission_classes = [AllowAny]
+
+    # 유저 프로필 이미지 조회
+    @extend_schema(
+        summary="유저 프로필 이미지 조회",
+        responses={200: UserProfileImageSerializer},
+    )
+    def get(self, request):
+        user = request.user
+
+        if not user.profile_image:
+            return Response(
+                {"error": "프로필 이미지가 존재하지 않습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(
+            UserProfileImageSerializer(user).data,
+            status=status.HTTP_200_OK,
         )

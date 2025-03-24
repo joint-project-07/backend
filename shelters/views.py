@@ -1,12 +1,20 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.utils import delete_file_from_s3, upload_file_to_s3, validate_file_extension
+
 from .models import Shelter
-from .serializers import ShelterCreateUpdateSerializer, ShelterSerializer
+from .serializers import (
+    ShelterBusinessLicenseSerializer,
+    ShelterCreateUpdateSerializer,
+    ShelterSerializer,
+)
 
 
 # 🧀 보호소 검색 (GET /api/shelters/search)
@@ -109,3 +117,101 @@ class MyShelterDetailView(APIView):
             {"message": serializer.errors},
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+
+class ShelterBusinessLicenseView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+
+    # 보호소 사업자등록증 업로드
+    @extend_schema(
+        summary="보호소 사업자등록증 업로드",
+        request={"multipart/form-data": {"business_license": "file"}},
+        responses={201: ShelterBusinessLicenseSerializer(many=True)},
+    )
+    def post(self, request):
+        user = request.user
+        shelter = Shelter.objects.filter(user=user).first()
+
+        if not shelter:
+            return Response(
+                {"error": "보호소 정보를 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        file = request.FILES.get("business_license")
+
+        if not file:
+            return Response(
+                {"error": "파일을 업로드해야 합니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            validate_file_extension(file, "shelters")  # 파일 검증
+            file_url = upload_file_to_s3(file, "shelters", shelter.id)  # S3 업로드
+
+            # 기존 파일 삭제 후 새로운 파일 저장
+            if shelter.business_license_file:
+                delete_file_from_s3(shelter.business_license_file)
+
+            shelter.business_license_file = file_url
+            shelter.save()
+
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            ShelterBusinessLicenseSerializer(shelter).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    # 보호소 사업자등록증 조회
+    @extend_schema(
+        summary="보호소 사업자등록증 조회",
+        responses={200: ShelterBusinessLicenseSerializer},
+    )
+    def get(self, request):
+        user = request.user
+        shelter = Shelter.objects.filter(user=user).first()
+
+        if not shelter:
+            return Response(
+                {"error": {"보호소 정보를 찾을 수 없습니다."}},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(
+            ShelterBusinessLicenseSerializer(shelter).data, status=status.HTTP_200_OK
+        )
+
+    # 보호소 사업자등록증 삭제
+    @extend_schema(summary="보호소 사업자등록증 삭제", responses={204: None})
+    def delete(self, request):
+        user = request.user
+        shelter = Shelter.objects.filter(user=user).first()
+
+        if not shelter:
+            return Response(
+                {"error": "보호소 정보를 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not shelter.business_license_file:
+            return Response(
+                {"error": "등록된 사업자등록증이 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            delete_file_from_s3(shelter.business_license_file)
+            shelter.business_license_file = None
+            shelter.save()
+            return Response(
+                {"message": "사업자등록증이 삭제되었습니다."},
+                status=status.HTTP_204_NO_CONTENT,
+            )
+        except Exception as e:
+            return Response(
+                {"error": "삭제가 실패하였습니다.", "details": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )

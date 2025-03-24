@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from recruitments.models import Recruitment
+from .models import Recruitment, RecruitmentImage
 
 
 # ✅ 봉사활동 시리얼라이저
@@ -70,3 +70,9 @@ class RecruitmentDetailSerializer(serializers.ModelSerializer):
             "supplies",
             "status",
         ]
+
+
+class RecruitmentImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RecruitmentImage
+        fields = ["id", "recruitment", "image_url"]
