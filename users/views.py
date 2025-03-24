@@ -48,9 +48,12 @@ class SignupView(APIView):
             201: {"example": {"message": "회원가입이 완료되었습니다."}},
             400: {
                 "example": {
-                    "password": ["비밀번호는 최소 8자리 이상이어야 합니다."],
-                    "contact_number": ["이미 등록된 전화번호입니다."],
                     "email": ["이미 사용 중인 이메일입니다."],
+                    "contact_number_duplicate": ["이미 등록된 전화번호입니다."],
+                    "password": ["비밀번호는 최소 8자리 이상이어야 합니다."],
+                    "contact_number_format": [
+                        "전화번호는 01012345678 형식이어야 합니다."
+                    ],
                     "password_confirm": [
                         "비밀번호와 비밀번호 확인이 일치하지 않습니다."
                     ],
@@ -59,31 +62,13 @@ class SignupView(APIView):
         },
     )
     def post(self, request):
-
-        # 이메일과 전화번호 중복 체크
-        email = request.data.get("email")
-        contact_number = request.data.get("contact_number")
-
-        if User.objects.filter(email=email).exists():
-            return Response(
-                {"email": "이미 사용 중인 이메일입니다."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if User.objects.filter(contact_number=contact_number).exists():
-            return Response(
-                {"contact_number": "이미 등록된 전화번호입니다."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         serializer = SignupSerializer(data=request.data)
-        # 유효성 검사 및 데이터 저장
         if serializer.is_valid():
             serializer.save()
             return Response(
                 {"message": "회원가입이 완료되었습니다."},
                 status=status.HTTP_201_CREATED,
             )
-        # 유효성 검사 실패 시, 오류 반환
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -244,9 +229,8 @@ class VerifyEmailView(APIView):
 
 class ShelterSignupView(APIView):
     permission_classes = [AllowAny]
-    serializer_class = ShelterSignupSerializer
     """
-    🍒보호소 회원가입 API
+    🍒보호소 회원가입
     """
 
     @extend_schema(
@@ -255,41 +239,29 @@ class ShelterSignupView(APIView):
             201: {"example": {"message": "회원가입이 완료되었습니다."}},
             400: {
                 "example": {
-                    "password": ["비밀번호는 최소 8자리 이상이어야 합니다."],
-                    "contact_number": ["이미 등록된 전화번호입니다."],
-                    "email": ["이미 사용 중인 이메일입니다."],
-                    "password_confirm": [
-                        "비밀번호와 비밀번호 확인이 일치하지 않습니다."
-                    ],
+                    "user": {
+                        "email": ["이미 사용 중인 이메일입니다."],
+                        "contact_number_duplicate": ["이미 등록된 전화번호입니다."],
+                        "password": ["비밀번호는 최소 8자리 이상이어야 합니다."],
+                        "contact_number_format": [
+                            "전화번호는 01012345678 형식이어야 합니다."
+                        ],
+                        "password_confirm": [
+                            "비밀번호와 비밀번호 확인이 일치하지 않습니다."
+                        ],
+                    }
                 }
             },
         },
     )
     def post(self, request):
-        # 이메일과 전화번호 중복 체크
-        email = request.data.get("email")
-        contact_number = request.data.get("contact_number")
-
-        if User.objects.filter(email=email).exists():
-            return Response(
-                {"email": "이미 사용 중인 이메일입니다."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if User.objects.filter(contact_number=contact_number).exists():
-            return Response(
-                {"contact_number": "이미 등록된 전화번호입니다."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        serializer = SignupSerializer(data=request.data)
-        # 유효성 검사 및 데이터 저장
+        serializer = ShelterSignupSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(
                 {"message": "회원가입이 완료되었습니다."},
                 status=status.HTTP_201_CREATED,
             )
-        # 유효성 검사 실패 시, 오류 반환
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -371,52 +343,81 @@ class KakaoLoginView(APIView):
                 "example": {
                     "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                     "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                    "token_type": "Bearer",
                 }
             },
             400: {
-                "example": {"message": ["카카오 계정이 등록되지 않은 사용자입니다."]},
-                500: {"example": {"Error": "Internal Server Error"}},
+                "example": {"message": "인가 코드가 필요합니다."},
+                401: {
+                    "example": {"message": "카카오 액세스 토큰 발급 실패"},
+                    500: {"example": {"Error": "Internal Server Error"}},
+                },
             },
         },
     )
-    def post(self, request):
-        serializer = KakaoLoginSerializer(data=request.data)
+    def post(self, request, *args, **kwargs):
+        # 1. 프론트에서 받은 인가코드
+        authorization_code = request.data.get("authorization_code")
 
-        # 시리얼라이저 검증
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        # 카카오 API 호출 (비즈니스 로직은 뷰에서 처리)
-        access_token = serializer.validated_data["access_token"]
-        user_info_url = "https://kapi.kakao.com/v2/user/me"
-        headers = {"Authorization": f"Bearer {access_token}"}
-        response = requests.get(user_info_url, headers=headers)
-
-        if response.status_code != 200:
+        if not authorization_code:
             return Response(
-                {"Error": "Internal Server Error"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-        user_info = response.json()
-        provider_id = str(user_info.get("id"))
-
-        # 카카오 로그인한 사용자가 이미 등록되었는지 확인
-        user = User.objects.filter(provider_id=provider_id).first()
-        if not user:
-            return Response(
-                {"message": "카카오 계정이 등록되지 않은 사용자입니다."},
+                {"message": "인가 코드가 필요합니다."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # JWT 토큰 발급
+        # 2. 카카오 토큰 발급 요청
+        token_url = "https://kauth.kakao.com/oauth/token"
+        data = {
+            "grant_type": "authorization_code",
+            "client_id": settings.KAKAO_CLIENT_ID,
+            "redirect_uri": settings.KAKAO_REDIRECT_URI,
+            "code": authorization_code,
+        }
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+
+        response = requests.post(token_url, data=data, headers=headers)
+        token_info = response.json()
+
+        # 3. 카카오 액세스 토큰
+        access_token = token_info.get("access_token")
+
+        if not access_token:
+            return Response(
+                {"message": "카카오 액세스 토큰 발급 실패"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        # 4. 카카오 유저 정보 조회
+        user_info_url = "https://kapi.kakao.com/v2/user/me"
+        user_info_headers = {"Authorization": f"Bearer {access_token}"}
+        user_info_response = requests.get(user_info_url, headers=user_info_headers)
+        user_info = user_info_response.json()
+
+        # 5. 카카오 유저 정보로 유저 찾기 또는 생성
+        provider_id = str(user_info.get("id"))
+        email = user_info.get("kakao_account", {}).get("email", None)
+        name = user_info.get("properties", {}).get("nickname", None)
+        profile_image = user_info.get("properties", {}).get("profile_image", None)
+
+        user = User.objects.filter(provider_id=provider_id).first()
+
+        if not user:
+            user = User.objects.create(
+                email=email,
+                name=name,
+                provider_id=provider_id,
+                kakao_login=True,
+                profile_image=profile_image,
+            )
+
+        # 6. JWT 토큰 발급
         refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+
+        # 7. JWT 반환
         return Response(
             {
-                "access_token": str(refresh.access_token),
+                "access_token": access_token,
                 "refresh_token": str(refresh),
-                "token_type": "Bearer",
             },
             status=status.HTTP_200_OK,
         )

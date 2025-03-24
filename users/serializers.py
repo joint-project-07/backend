@@ -34,17 +34,25 @@ class SignupSerializer(serializers.ModelSerializer):
     def validate(self, data):
         errors = {}  # 여러 개의 에러를 모을 딕셔너리
 
-        # 비밀번호 8자리 이상 검증
-        password = data.get("password")
-        if len(password) < 8:
+        # 🧀 이메일 중복 검사
+        if User.objects.filter(email=data["email"]).exists():
+            errors["email"] = ["이미 사용 중인 이메일입니다."]
+
+        # 🧀 전화번호 중복 검사
+        if User.objects.filter(contact_number=data["contact_number"]).exists():
+            errors["contact_number_duplicate"] = ["이미 등록된 전화번호입니다."]
+
+        # 🧀 비밀번호 길이 검증
+        if len(data["password"]) < 8:
             errors["password"] = ["비밀번호는 최소 8자리 이상이어야 합니다."]
 
-        # 전화번호 형식 검증
-        contact_number = data.get("contact_number")
-        if not re.fullmatch(r"^01[0-9]\d{7,8}$", contact_number):
-            errors["contact_number"] = ["전화번호는 01012345678 형식이어야 합니다."]
+        # 🧀 전화번호 형식 검증
+        if not re.fullmatch(r"^01[0-9]\d{7,8}$", data["contact_number"]):
+            errors["contact_number_format"] = [
+                "전화번호는 01012345678 형식이어야 합니다."
+            ]
 
-        # 비밀번호 확인
+        # 🧀 비밀번호 확인
         if data["password"] != data["password_confirm"]:
             errors["password_confirm"] = [
                 "비밀번호와 비밀번호 확인이 일치하지 않습니다."
@@ -129,13 +137,7 @@ class EmailLoginSerializer(serializers.Serializer):
 
 # 🍒카카오 로그인
 class KakaoLoginSerializer(serializers.Serializer):
-    access_token = serializers.CharField()
-
-    def validate_access_token(self, value):
-        # Access Token 자체는 유효성 검증만 처리 (실제로 호출은 뷰에서)
-        if not value:
-            raise serializers.ValidationError("Access token이 필요합니다.")
-        return value
+    authorization_code = serializers.CharField()
 
 
 # 🍒아이디 찾기
