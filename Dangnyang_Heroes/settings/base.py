@@ -210,6 +210,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:5173",
     "http://223.130.151.137",
+    "https://back.dietstory.shop",
 ]
 
 CORS_ALLOW_METHODS = (
