@@ -710,6 +710,9 @@ class UserDeleteView(APIView):
 
 class ProfileImageUploadDeleteView(APIView):
     parser_classes = [MultiPartParser, FormParser]
+    """
+    🍒 이미지 API
+    """
 
     # 유저 프로필 이미지 업로드
     @extend_schema(

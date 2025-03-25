@@ -99,6 +99,7 @@ class ShelterSignupSerializer(serializers.ModelSerializer):
             "business_registration_number",
             "business_registration_email",
             "address",
+            "region",
         ]
 
     def validate(self, data):
