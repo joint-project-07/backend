@@ -38,6 +38,7 @@ class HistoryRatingAPIView(APIView):
     @extend_schema(
         summary="보호소 평가",
         description="봉사자가 자신이 완료한 봉사활동을 기반으로 보호소에 점수를 부여합니다.",
+        request=HistoryRatingSerializer,
         responses={
             200: HistoryRatingSerializer,
             404: {"example": {"error": "해당 봉사 이력을 찾을 수 없습니다."}},
@@ -66,7 +67,7 @@ class HistoryRatingAPIView(APIView):
                 {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        history.rating = request.validated_data["rating"]
+        history.rating = serializer.validated_data["rating"]
         history.save()
 
         return Response(

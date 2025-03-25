@@ -9,6 +9,7 @@ from applications.serializers import (
     ApplicationRejectSerializer,
     ApplicationSerializer,
 )
+from histories.models import History
 from recruitments.models import Recruitment
 
 
@@ -138,9 +139,9 @@ class ApplicationDetailView(APIView):
             404: {"example": {"error": "해당 신청을 찾을 수 없습니다."}},
         },
     )
-    def get(self, request, pk):
+    def get(self, request, application_id):
         try:
-            application = Application.objects.get(pk=pk, user=request.user)
+            application = Application.objects.get(pk=application_id, user=request.user)
         except Application.DoesNotExist:
             return Response(
                 {"error": "해당 신청을 찾을 수 없습니다."},
@@ -159,9 +160,9 @@ class ApplicationDetailView(APIView):
             404: {"example": {"error": "해당 봉사 신청 내역을 찾을 수 없습니다."}},
         },
     )
-    def delete(self, request, pk):
+    def delete(self, request, application_id):
         try:
-            application = Application.objects.get(pk=pk, user=request.user)
+            application = Application.objects.get(pk=application_id, user=request.user)
         except Application.DoesNotExist:
             return Response(
                 {"error": "해당 신청을 찾을 수 없습니다."},
@@ -177,16 +178,15 @@ class ApplicationApproveRejectView(APIView):
     @extend_schema(
         summary="봉사 신청 승인",
         description="보호소 관리자가 특정 봉사 신청을 승인합니다.",
-        request=ApplicationSerializer,
         responses={
             200: ApplicationSerializer,
             403: {"example": {"error": "승인 권한이 없습니다."}},
             404: {"example": {"error": "해당 신청을 찾을 수 없습니다."}},
         },
     )
-    def post(self, request, pk):
+    def post(self, request, application_id):
         try:
-            application = Application.objects.get(pk=pk)
+            application = Application.objects.get(pk=application_id)
         except Application.DoesNotExist:
             return Response(
                 {"error": "해당 신청을 찾을 수 없습니다."},
@@ -218,9 +218,9 @@ class ApplicationRejectView(APIView):
             404: {"example": {"error": "해당 신청을 찾을 수 없습니다."}},
         },
     )
-    def post(self, request, pk):
+    def post(self, request, application_id):
         try:
-            application = Application.objects.get(pk=pk)
+            application = Application.objects.get(pk=application_id)
         except Application.DoesNotExist:
             return Response(
                 {"error": "해당 신청을 찾을 수 없습니다."},
@@ -253,16 +253,15 @@ class ApplicationAttendView(APIView):
     @extend_schema(
         summary="봉사 활동 완료 ",
         description="보호소 관리자가 봉사 완료한 봉사자를 완료 처리합니다.",
-        request=ApplicationSerializer,
         responses={
             200: ApplicationSerializer,
             403: {"example": {"error": "승인 권한이 없습니다."}},
             404: {"example": {"error": "해당 봉사 활동을 찾을 수 없습니다."}},
         },
     )
-    def post(self, request, pk):
+    def post(self, request, application_id):
         try:
-            application = Application.objects.get(pk=pk)
+            application = Application.objects.get(pk=application_id)
         except Application.DoesNotExist:
             return Response(
                 {"error": "해당 신청을 찾을 수 없습니다."},
@@ -276,6 +275,14 @@ class ApplicationAttendView(APIView):
 
         application.status = "attended"
         application.save()
+
+        # 완료 시 History 생성
+        History.objects.get_or_create(
+            user=application.user,
+            application=application,
+            shelter=application.recruitment.shelter,
+        )
+
         return Response(
             ApplicationSerializer(application).data, status=status.HTTP_200_OK
         )
@@ -286,16 +293,15 @@ class ApplicationAbsenceView(APIView):
     @extend_schema(
         summary="봉사 활동 불참",
         description="보호소 관리자가 불참한 봉사자를 불참 처리합니다.",
-        request=ApplicationSerializer,
         responses={
             200: ApplicationSerializer,
             403: {"example": {"error": "승인 권한이 없습니다."}},
             404: {"example": {"error": "해당 봉사 활동을 찾을 수 없습니다."}},
         },
     )
-    def post(self, request, pk):
+    def post(self, request, application_id):
         try:
-            application = Application.objects.get(pk=pk)
+            application = Application.objects.get(pk=application_id)
         except Application.DoesNotExist:
             return Response(
                 {"error": "해당 신청을 찾을 수 없습니다."},
@@ -309,6 +315,14 @@ class ApplicationAbsenceView(APIView):
 
         application.status = "absence"
         application.save()
+
+        # 완료 시 History 생성
+        History.objects.get_or_create(
+            user=application.user,
+            application=application,
+            shelter=application.recruitment.shelter,
+        )
+
         return Response(
             ApplicationSerializer(application).data, status=status.HTTP_200_OK
         )
