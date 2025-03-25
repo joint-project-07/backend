@@ -69,7 +69,7 @@ def upload_file_to_s3(file, instance_type, object_identifier):
         raise ValueError(f"Invalid instance type: {instance_type}")
 
     try:
-        s3_client.upload_fileobj(file, base.AWS_STORAGE_BUCKET_NAME, s3_path)
+        s3_client.upload_fileobj(file, base.AWS_STORAGE_BUCKET_NAME, s3_path, ExtraArgs={"ACL": "public-read"})
         return f"{base.MEDIA_URL}{s3_path}"
     except Exception as e:
         raise RuntimeError(f"S3 Upload Error: {e}")
