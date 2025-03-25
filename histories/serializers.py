@@ -19,11 +19,10 @@ class HistoryRecruitmentSerializer(serializers.ModelSerializer):
 
 class HistorySerializer(serializers.ModelSerializer):
     shelter = HistoryShelterSerializer()
-    recruitment = HistoryRecruitmentSerializer()
+    recruitment = HistoryRecruitmentSerializer(source="application.recruitment")
 
     class Meta:
         model = History
-
         fields = ["id", "shelter", "recruitment", "rating"]
 
 
@@ -32,5 +31,4 @@ class HistoryRatingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = History
-
         fields = ["id", "rating"]

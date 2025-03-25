@@ -9,6 +9,7 @@ from applications.serializers import (
     ApplicationRejectSerializer,
     ApplicationSerializer,
 )
+from histories.models import History
 from recruitments.models import Recruitment
 
 
@@ -274,6 +275,14 @@ class ApplicationAttendView(APIView):
 
         application.status = "attended"
         application.save()
+
+        # 완료 시 History 생성
+        History.objects.get_or_create(
+            user=application.user,
+            application=application,
+            shelter=application.recruitment.shelter,
+        )
+
         return Response(
             ApplicationSerializer(application).data, status=status.HTTP_200_OK
         )
@@ -306,6 +315,14 @@ class ApplicationAbsenceView(APIView):
 
         application.status = "absence"
         application.save()
+
+        # 완료 시 History 생성
+        History.objects.get_or_create(
+            user=application.user,
+            application=application,
+            shelter=application.recruitment.shelter,
+        )
+
         return Response(
             ApplicationSerializer(application).data, status=status.HTTP_200_OK
         )
