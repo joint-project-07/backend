@@ -232,9 +232,14 @@ CORS_ALLOW_HEADERS = (
     "x-requested-with",
 )
 
-CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_ALL_ORIGINS = False
 
 # Social
 KAKAO_CLIENT_ID = (os.getenv("KAKAO_CLIENT_ID"),)
 KAKAO_SECRET = (os.getenv("KAKAO_SECRET"),)
 KAKAO_REDIRECT_URI = (os.getenv("KAKAO_REDIRECT_URI"),)
+
+CSRF_TRUSTED_ORIGINS = ["https://back.dietstory.shop/", "https://localhost:3000/"]
+CSRF_COOKIE_DOMAIN = ".dietstory.shop"
+SESSION_COOKIE_DOMAIN = ".dietstory.shop"
