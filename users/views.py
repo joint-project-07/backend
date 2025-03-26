@@ -1,7 +1,7 @@
 import random
 
+import requests
 from django.conf import settings
-from django.contrib.sites import requests
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
