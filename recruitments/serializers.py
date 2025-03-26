@@ -1,5 +1,5 @@
+from drf_spectacular.utils import OpenApiExample, extend_schema_serializer
 from rest_framework import serializers
-from drf_spectacular.utils import extend_schema_serializer, OpenApiExample
 
 from .models import Recruitment, RecruitmentImage
 
@@ -89,6 +89,4 @@ class RecruitmentImageSerializer(serializers.ModelSerializer):
     ]
 )
 class RecruitmentImageUploadSerializer(serializers.Serializer):
-    images = serializers.ListField(
-        child=serializers.ImageField(), allow_empty=False
-    )
+    images = serializers.ListField(child=serializers.ImageField(), allow_empty=False)

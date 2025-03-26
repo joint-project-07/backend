@@ -9,7 +9,11 @@ from rest_framework.views import APIView
 from common.utils import delete_file_from_s3, upload_file_to_s3, validate_file_extension
 
 from .models import Recruitment, RecruitmentImage
-from .serializers import RecruitmentImageSerializer, RecruitmentSerializer, RecruitmentImageUploadSerializer
+from .serializers import (
+    RecruitmentImageSerializer,
+    RecruitmentImageUploadSerializer,
+    RecruitmentSerializer,
+)
 
 
 # 🧀 봉사활동 검색

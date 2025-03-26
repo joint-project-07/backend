@@ -35,8 +35,9 @@ from .serializers import (  # UserUpdateSerializer,
     SignupSerializer,
     UserDeleteSerializer,
     UserProfileImageSerializer,
+    UserProfileImageUploadSerializer,
     UserSerializer,
-    VerifyEmailSerializer, UserProfileImageUploadSerializer,
+    VerifyEmailSerializer,
 )
 
 
