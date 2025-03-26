@@ -34,5 +34,5 @@ SPECTACULAR_SETTINGS = {
     "AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
-    # OTHER SETTINGS
+    "COMPONENT_SPLIT_REQUEST": True,
 }

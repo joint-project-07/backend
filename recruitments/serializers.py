@@ -1,3 +1,4 @@
+from drf_spectacular.utils import OpenApiExample, extend_schema_serializer
 from rest_framework import serializers
 
 from .models import Recruitment, RecruitmentImage
@@ -76,3 +77,16 @@ class RecruitmentImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = RecruitmentImage
         fields = ["id", "recruitment", "image_url"]
+
+
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample(
+            name="이미지 업로드",
+            value={"images": ["이미지1", "이미지2"]},
+            request_only=True,
+        )
+    ]
+)
+class RecruitmentImageUploadSerializer(serializers.Serializer):
+    images = serializers.ListField(child=serializers.ImageField(), allow_empty=False)

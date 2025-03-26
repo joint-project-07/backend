@@ -12,6 +12,7 @@ from common.utils import delete_file_from_s3, upload_file_to_s3, validate_file_e
 from .models import Shelter
 from .serializers import (
     ShelterBusinessLicenseSerializer,
+    ShelterBusinessLicenseUploadSerializer,
     ShelterCreateUpdateSerializer,
     ShelterSerializer,
 )
@@ -123,10 +124,14 @@ class ShelterBusinessLicenseView(APIView):
     # 보호소 사업자등록증 업로드
     @extend_schema(
         summary="보호소 사업자등록증 업로드",
-        request={"multipart/form-data": {"business_license": "file"}},
+        request=ShelterBusinessLicenseUploadSerializer,
         responses={201: ShelterBusinessLicenseSerializer(many=True)},
     )
     def post(self, request):
+        serializer = ShelterBusinessLicenseUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        file = serializer.validated_data["business_license"]
         user = request.user
         shelter = Shelter.objects.filter(user=user).first()
 
@@ -135,8 +140,6 @@ class ShelterBusinessLicenseView(APIView):
                 {"error": "보호소 정보를 찾을 수 없습니다."},
                 status=status.HTTP_404_NOT_FOUND,
             )
-
-        file = request.FILES.get("business_license")
 
         if not file:
             return Response(

@@ -24,13 +24,4 @@ class Migration(migrations.Migration):
                 to=settings.AUTH_USER_MODEL,
             ),
         ),
-        migrations.AddField(
-            model_name="shelterimage",
-            name="shelter",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="images",
-                to="shelters.shelter",
-            ),
-        ),
     ]

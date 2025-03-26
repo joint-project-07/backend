@@ -65,24 +65,4 @@ class Migration(migrations.Migration):
                 "db_table": "shelters",
             },
         ),
-        migrations.CreateModel(
-            name="ShelterImage",
-            fields=[
-                ("created_at", models.DateTimeField(auto_now_add=True)),
-                ("updated_at", models.DateTimeField(auto_now=True)),
-                ("id", models.AutoField(primary_key=True, serialize=False)),
-                (
-                    "image_type",
-                    models.CharField(
-                        choices=[("profile", "Profile"), ("general", "General")],
-                        default="general",
-                        max_length=20,
-                    ),
-                ),
-                ("image_url", models.CharField(max_length=255)),
-            ],
-            options={
-                "db_table": "shelter_images",
-            },
-        ),
     ]
