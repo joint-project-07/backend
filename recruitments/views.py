@@ -1,8 +1,8 @@
 from django.db.models import Q
-from drf_spectacular.utils import extend_schema
-from rest_framework import generics, status
+from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -13,117 +13,141 @@ from .serializers import RecruitmentImageSerializer, RecruitmentSerializer
 
 
 # 🧀 봉사활동 검색
-class RecruitmentSearchView(generics.ListAPIView):
-    serializer_class = RecruitmentSerializer
-
-    def get_queryset(self):
+@extend_schema(
+    summary="봉사활동 검색",
+    parameters=[
+        OpenApiParameter(
+            name="start_date", type=str, location=OpenApiParameter.QUERY, required=False
+        ),
+        OpenApiParameter(
+            name="end_date", type=str, location=OpenApiParameter.QUERY, required=False
+        ),
+        OpenApiParameter(
+            name="time", type=str, location=OpenApiParameter.QUERY, required=False
+        ),
+    ],
+    responses={200: RecruitmentSerializer(many=True)},
+)
+class RecruitmentSearchView(APIView):
+    def get(self, request):
         queryset = Recruitment.objects.all()
-        start_date = self.request.query_params.get("start_date")
-        end_date = self.request.query_params.get("end_date")
-        time = self.request.query_params.get("time")
+        start_date = request.query_params.get("start_date")
+        end_date = request.query_params.get("end_date")
+        time = request.query_params.get("time")
 
-        # ✅ 날짜 필터링 (범위 검색)
         if start_date and end_date:
             queryset = queryset.filter(date__range=[start_date, end_date])
-
-        # ✅ 시간 필터링 (특정 시간 범위 검색)
         if time:
             queryset = queryset.filter(Q(start_time__lte=time) & Q(end_time__gte=time))
 
-        return queryset
-
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
         if not queryset.exists():
             return Response(
                 {"error": "해당 조건에 맞는 봉사활동을 찾을 수 없습니다."},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        serializer = self.get_serializer(queryset, many=True)
+
+        serializer = RecruitmentSerializer(queryset, many=True)
         return Response({"recruitments": serializer.data}, status=status.HTTP_200_OK)
 
 
 # 🧀 봉사활동 전체 조회
-class RecruitmentListView(generics.ListAPIView):
-    queryset = Recruitment.objects.all()
-    serializer_class = RecruitmentSerializer
+@extend_schema(
+    summary="봉사활동 전체 목록 조회",
+    responses={200: RecruitmentSerializer(many=True)},
+)
+class RecruitmentListView(APIView):
+    permission_classes = [AllowAny]
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
+    def get(self, request):
+        queryset = Recruitment.objects.all()
+        serializer = RecruitmentSerializer(queryset, many=True)
         return Response({"recruitments": serializer.data}, status=status.HTTP_200_OK)
 
 
 # 🧀 봉사활동 상세 조회
-class RecruitmentDetailView(generics.RetrieveAPIView):
-    queryset = Recruitment.objects.all()
-    serializer_class = RecruitmentSerializer
-    lookup_field = "pk"
-
-    def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
+@extend_schema(summary="봉사활동 상세 조회", responses={200: RecruitmentSerializer})
+class RecruitmentDetailView(APIView):
+    def get(self, request, pk):
+        recruitment = Recruitment.objects.filter(pk=pk).first()
+        if not recruitment:
+            return Response(
+                {"error": "봉사활동을 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = RecruitmentSerializer(recruitment)
         return Response({"recruitment": serializer.data}, status=status.HTTP_200_OK)
 
 
-# 🧀 봉사활동 등록 → shelter_id 자동 추출 수정됨
-class RecruitmentCreateView(generics.CreateAPIView):
-    serializer_class = RecruitmentSerializer
+# 🧀 봉사활동 등록
+@extend_schema(
+    summary="봉사활동 등록", request=RecruitmentSerializer, responses={201: dict}
+)
+class RecruitmentCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def create(self, request, *args, **kwargs):
-        # ✅ shelter_id 자동 추출 추가
+    def post(self, request):
         shelter = request.user.shelter
         data = request.data.copy()
         data["shelter"] = shelter.id
 
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-
+        serializer = RecruitmentSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {
+                    "code": 201,
+                    "message": "봉사활동이 성공적으로 등록되었습니다.",
+                    "recruitment_id": serializer.instance.id,
+                },
+                status=status.HTTP_201_CREATED,
+            )
         return Response(
-            {
-                "code": 201,
-                "message": "봉사활동이 성공적으로 등록되었습니다.",
-                "recruitment_id": serializer.instance.id,
-            },
-            status=status.HTTP_201_CREATED,
+            {"code": 400, "message": serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST,
         )
 
 
-# 🧀 봉사활동 수정 → shelter_id 자동 추출 수정됨
-class RecruitmentUpdateView(generics.UpdateAPIView):
-    queryset = Recruitment.objects.all()
-    serializer_class = RecruitmentSerializer
+# 🧀 봉사활동 수정
+@extend_schema(
+    summary="봉사활동 수정", request=RecruitmentSerializer, responses={200: dict}
+)
+class RecruitmentUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get_object(self):
-        shelter = self.request.user.shelter
-        return self.get_queryset().get(pk=self.kwargs["pk"], shelter=shelter)
+    def patch(self, request, pk):
+        shelter = request.user.shelter
+        recruitment = Recruitment.objects.filter(pk=pk, shelter=shelter).first()
 
-    def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
+        if not recruitment:
+            return Response(
+                {"error": "봉사활동을 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
+        serializer = RecruitmentSerializer(recruitment, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {
+                    "code": 200,
+                    "message": "봉사활동이 성공적으로 수정되었습니다.",
+                    "recruitment_id": serializer.instance.id,
+                },
+                status=status.HTTP_200_OK,
+            )
         return Response(
-            {
-                "code": 201,
-                "message": "봉사활동이 성공적으로 수정되었습니다.",
-                "recruitment_id": serializer.instance.id,
-            },
-            status=status.HTTP_201_CREATED,
+            {"code": 400, "message": serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST,
         )
 
 
+# 🧀 봉사활동 이미지 업로드 & 조회
 class RecruitmentImageView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
-    # 봉사 활동 이미지 업로드
     @extend_schema(
         summary="봉사활동 이미지 업로드",
-        request={"multipart/form-data": {"images": "file[]"}},
+        request={"multipart/form-data": {"image": "file[]"}},
         responses={201: RecruitmentImageSerializer(many=True)},
     )
     def post(self, request, recruitment_id):
@@ -135,7 +159,6 @@ class RecruitmentImageView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # 해당 봉사 활동 일정이 존재하는지 확인
         recruitment = Recruitment.objects.filter(id=recruitment_id).first()
         if not recruitment:
             return Response(
@@ -144,10 +167,9 @@ class RecruitmentImageView(APIView):
             )
 
         uploaded_images = []
-
         for file in files:
             try:
-                validate_file_extension(file, "recruitments")  # 파일 검증
+                validate_file_extension(file, "recruitments")
                 image_url = upload_file_to_s3(file, "recruitments", recruitment_id)
                 image = RecruitmentImage.objects.create(
                     recruitment=recruitment, image_url=image_url
@@ -161,14 +183,12 @@ class RecruitmentImageView(APIView):
             status=status.HTTP_201_CREATED,
         )
 
-    # 특정 봉사활동의 모든 이미지 조회
     @extend_schema(
         summary="봉사활동 이미지 조회",
         responses={200: RecruitmentImageSerializer(many=True)},
     )
     def get(self, request, recruitment_id):
         images = RecruitmentImage.objects.filter(recruitment_id=recruitment_id)
-
         if not images.exists():
             return Response(
                 {"error": "해당 봉사활동에 등록된 이미지가 없습니다."},
@@ -181,9 +201,9 @@ class RecruitmentImageView(APIView):
         )
 
 
-# 봉사 활동 이미지 개별 삭제
+# 🧀 봉사활동 이미지 삭제
+@extend_schema(summary="봉사활동 이미지 삭제", responses={204: None})
 class RecruitmentImageDeleteView(APIView):
-    @extend_schema(summary="봉사활동 이미지 삭제", responses={204: None})
     def delete(self, request, image_id):
         image = RecruitmentImage.objects.filter(id=image_id).first()
 
@@ -193,7 +213,6 @@ class RecruitmentImageDeleteView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # S3 에서 삭제
         try:
             delete_file_from_s3(image.image_url)
             image.delete()
@@ -203,6 +222,6 @@ class RecruitmentImageDeleteView(APIView):
             )
         except Exception as e:
             return Response(
-                {"error": "이미지 삭제가 실패하였습니다.", "details": str(e)},
+                {"error": "이미지 삭제에 실패했습니다.", "details": str(e)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
