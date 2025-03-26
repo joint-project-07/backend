@@ -66,7 +66,7 @@ class ShelterSearchView(APIView):
     summary="보호소 전체 목록 조회", responses={200: ShelterSerializer(many=True)}
 )
 class ShelterListView(APIView):
-    permission_classes = [AllowAny]  # 👈 여기에 추가
+    permission_classes = [AllowAny]
 
     def get(self, request):
         queryset = Shelter.objects.all()

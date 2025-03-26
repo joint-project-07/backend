@@ -2,7 +2,7 @@ from django.db.models import Q
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -52,9 +52,12 @@ class RecruitmentSearchView(APIView):
 
 # 🧀 봉사활동 전체 조회
 @extend_schema(
-    summary="봉사활동 전체 목록 조회", responses={200: RecruitmentSerializer(many=True)}
+    summary="봉사활동 전체 목록 조회",
+    responses={200: RecruitmentSerializer(many=True)},
 )
 class RecruitmentListView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
         queryset = Recruitment.objects.all()
         serializer = RecruitmentSerializer(queryset, many=True)
