@@ -62,7 +62,7 @@ class RecruitmentImage(BaseModel):
     image_url = models.URLField()
 
     def __str__(self):
-        return f"{self.recruitment.name} - {self.id}"
+        return f"Recruitment ID {self.recruitment.id} - Image {self.id}"
 
     class Meta:
         db_table = "recruitment_images"
