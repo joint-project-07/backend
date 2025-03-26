@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema_serializer, OpenApiExample
 from rest_framework import serializers
 
 from shelters.models import Shelter
@@ -56,3 +57,16 @@ class ShelterBusinessLicenseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Shelter
         fields = ["id", "business_license_file"]
+
+
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample(
+            name="이미지 업로드",
+            value={"business_license": "사업자등록증 파일"},
+            request_only=True,
+        )
+    ]
+)
+class ShelterBusinessLicenseUploadSerializer(serializers.Serializer):
+    business_license = serializers.FileField()
