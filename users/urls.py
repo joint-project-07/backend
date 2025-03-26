@@ -9,6 +9,7 @@ from .views import (
     KakaoLoginView,
     LogoutView,
     ProfileImageUploadDeleteView,
+    RefreshTokenView,
     ResetPasswordView,
     ShelterSignupView,
     SignupView,
@@ -42,4 +43,5 @@ urlpatterns = [
     path("profile_image/", UserProfileImageView.as_view(), name="profile-image"),
     path("verify/email-code/", VerifyEmailView.as_view(), name="verify-email-code"),
     path("delete/", UserDeleteView.as_view(), name="user-delete"),
+    path("refresh-token/", RefreshTokenView.as_view(), name="refresh-token"),
 ]

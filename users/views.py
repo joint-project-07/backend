@@ -29,6 +29,7 @@ from .serializers import (  # UserUpdateSerializer,
     FindEmailSerializer,
     KakaoLoginSerializer,
     LogoutSerializer,
+    RefreshTokenSerializer,
     ResetPasswordSerializer,
     ShelterSignupSerializer,
     SignupSerializer,
@@ -331,6 +332,61 @@ class EmailLoginView(APIView):
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class RefreshTokenView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = RefreshTokenSerializer
+    """
+    🍒액세스 토큰 갱신 API
+    """
+
+    @extend_schema(
+        request=RefreshTokenSerializer,
+        responses={
+            200: {
+                "example": {
+                    "message": "액세스 토큰 갱신 성공",
+                    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "token_type": "Bearer",
+                }
+            },
+            400: {"example": {"error": "리프레시 토큰을 제공해야 합니다."}},
+            401: {
+                "example": {"error": "리프레시 토큰이 유효하지 않거나 만료되었습니다."}
+            },
+        },
+    )
+    def post(self, request):
+        refresh_token = request.data.get("refresh_token")
+
+        if not refresh_token:
+            return Response(
+                {"error": "리프레시 토큰을 제공해야 합니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            # 리프레시 토큰 검증
+            refresh = RefreshToken(refresh_token)
+
+            # 새로운 액세스 토큰 발급
+            new_access_token = str(refresh.access_token)
+
+            return Response(
+                {
+                    "message": "액세스 토큰 갱신 성공",
+                    "access_token": new_access_token,
+                    "token_type": "Bearer",
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception:
+            return Response(
+                {"error": "리프레시 토큰이 유효하지 않거나 만료되었습니다."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
 
 class KakaoLoginView(APIView):
