@@ -36,7 +36,7 @@ from .serializers import (  # UserUpdateSerializer,
     UserDeleteSerializer,
     UserProfileImageSerializer,
     UserSerializer,
-    VerifyEmailSerializer,
+    VerifyEmailSerializer, UserProfileImageUploadSerializer,
 )
 
 
@@ -773,12 +773,15 @@ class ProfileImageUploadDeleteView(APIView):
     # 유저 프로필 이미지 업로드
     @extend_schema(
         summary="유저 프로필 이미지 업로드",
-        request={"multipart/form-data": {"image": "file"}},
+        request=UserProfileImageUploadSerializer,
         responses={201: UserProfileImageSerializer},
     )
     def post(self, request, *args, **kwargs):
         user = request.user
-        file = request.FILES.get("image")
+        serializer = UserProfileImageUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        file = serializer.validated_data("image")
 
         if not file:
             return Response(
