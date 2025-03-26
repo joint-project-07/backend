@@ -1,9 +1,9 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema,OpenApiParameter
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -17,7 +17,15 @@ from .serializers import (
 )
 
 
-# 🧀 보호소 검색 (GET /api/shelters/search)
+@extend_schema(
+    summary="보호소 검색",
+    parameters=[
+        OpenApiParameter(name="region", type=str, location=OpenApiParameter.QUERY, required=False),
+        OpenApiParameter(name="date", type=str, location=OpenApiParameter.QUERY, required=False),
+        OpenApiParameter(name="time", type=str, location=OpenApiParameter.QUERY, required=False),
+    ],
+    responses={200: ShelterSerializer(many=True)}
+)
 class ShelterSearchView(APIView):
     def get(self, request):
         region = request.query_params.get("region")
@@ -29,7 +37,6 @@ class ShelterSearchView(APIView):
         if region:
             queryset = queryset.filter(region=region)
 
-        # ✅ 날짜 및 시간 조건 필터링
         if date:
             queryset = queryset.filter(recruitments__date=date).distinct()
 
@@ -49,15 +56,22 @@ class ShelterSearchView(APIView):
         return Response({"shelters": serializer.data}, status=status.HTTP_200_OK)
 
 
-# 🧀 보호소 목록 조회 (GET /api/shelters/)
+@extend_schema(
+    summary="보호소 전체 목록 조회",
+    responses={200: ShelterSerializer(many=True)}
+)
 class ShelterListView(APIView):
+    permission_classes = [AllowAny]  # 👈 여기에 추가
     def get(self, request):
         queryset = Shelter.objects.all()
         serializer = ShelterSerializer(queryset, many=True)
         return Response({"shelters": serializer.data}, status=status.HTTP_200_OK)
 
 
-# 🧀 보호소 상세 조회 (GET /api/shelters/{shelter_id}/)
+@extend_schema(
+    summary="보호소 상세 조회",
+    responses={200: ShelterSerializer}
+)
 class ShelterDetailView(APIView):
     def get(self, request, pk):
         instance = get_object_or_404(Shelter, pk=pk)
@@ -65,40 +79,24 @@ class ShelterDetailView(APIView):
         return Response({"shelter": serializer.data}, status=status.HTTP_200_OK)
 
 
-# # 🧀 보호소 생성 (POST /api/shelters/create/)
-# class ShelterCreateView(APIView):
-#     permission_classes = [IsAuthenticated]
-#
-#     def post(self, request):
-#         serializer = ShelterCreateUpdateSerializer(
-#             data=request.data, context={"request": request}
-#         )
-#         if serializer.is_valid():
-#             serializer.save()
-#             return Response(
-#                 {
-#
-#                     "message": "보호소가 성공적으로 생성되었습니다.",
-#                     "shelter_id": serializer.instance.id,
-#                 },
-#                 status=status.HTTP_201_CREATED,
-#             )
-#         return Response(
-#             {"message": serializer.errors},
-#             status=status.HTTP_400_BAD_REQUEST,
-#         )
-
-
+@extend_schema(
+    summary="보호소 정보 조회",
+    responses={200: ShelterSerializer}
+)
+@extend_schema(
+    methods="patch",
+    summary="보호소 정보 수정",
+    request=ShelterCreateUpdateSerializer,
+    responses={200: ShelterCreateUpdateSerializer}
+)
 class MyShelterDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
-    # 🧀 보호소 정보 조회 (GET /api/shelters/me/)
     def get(self, request):
         instance = get_object_or_404(Shelter, user=request.user)
         serializer = ShelterSerializer(instance)
         return Response({"shelter": serializer.data}, status=status.HTTP_200_OK)
 
-    # 🧀 보호소 수정 (PATCH /api/shelters/{shelter_id}/update/)
     def patch(self, request):
         instance = get_object_or_404(Shelter, user=request.user)
         serializer = ShelterCreateUpdateSerializer(
