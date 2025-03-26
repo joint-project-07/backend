@@ -431,6 +431,7 @@ class KakaoLoginView(APIView):
             "grant_type": "authorization_code",
             "client_id": settings.KAKAO_CLIENT_ID,
             "redirect_uri": settings.KAKAO_REDIRECT_URI,
+            "client_secret": settings.KAKAO_SECRET,
             "code": authorization_code,
         }
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
