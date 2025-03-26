@@ -136,6 +136,11 @@ class EmailLoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
 
 
+# 🍒 액세스 토큰 갱신
+class RefreshTokenSerializer(serializers.Serializer):
+    refresh_token = serializers.CharField()  # 문자열 필드로 리프레시 토큰을 받음
+
+
 # 🍒카카오 로그인
 class KakaoLoginSerializer(serializers.Serializer):
     authorization_code = serializers.CharField()
