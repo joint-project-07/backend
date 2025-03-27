@@ -780,39 +780,44 @@ class ProfileImageUploadDeleteView(APIView):
     )
     def post(self, request, *args, **kwargs):
         user = request.user
-        serializer = UserProfileImageUploadSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        serializer = UserProfileImageUploadSerializer(data=request.FILES)
+        if serializer.is_valid(raise_exception=True):
 
-        file = serializer.validated_data("image")
+            file = serializer.validated_data["image"]
 
-        if not file:
-            return Response(
-                {"error": "이미지를 업로드해야 합니다."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            if not file:
+                return Response(
+                    {"error": "이미지를 업로드해야 합니다."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        # 기존 이미지 삭제
-        if user.profile_image:
-            delete_file_from_s3(user.profile_image)
-            user.profile_image = None
+            # 기존 이미지 삭제
+            if user.profile_image:
+                delete_file_from_s3(user.profile_image)
+                user.profile_image = None
+                user.save()
+
+            # 파일 검증 및 업로드
+            try:
+                validate_file_extension(file, "users")
+                s3_url = upload_file_to_s3(file, "users", user.id)
+            except ValueError as e:
+                return Response(
+                    {"error": "업로드에 실패하였습니다.", "details": str(e)},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # 새 이미지 저장
+            user.profile_image = s3_url
             user.save()
 
-        # 파일 검증 및 업로드
-        try:
-            validate_file_extension(file, "users")
-            s3_url = upload_file_to_s3(file, "users", user.id)
-        except ValueError as e:
             return Response(
-                {"error": "업로드에 실패하였습니다.", "details": str(e)},
-                status=status.HTTP_400_BAD_REQUEST,
+                UserProfileImageSerializer(user).data, status=status.HTTP_201_CREATED
             )
 
-        # 새 이미지 저장
-        user.profile_image = s3_url
-        user.save()
-
         return Response(
-            UserProfileImageSerializer(user).data, status=status.HTTP_201_CREATED
+            {"error": "오류"},
+            status=status.HTTP_400_BAD_REQUEST,
         )
 
     # 유저 프로필 이미지 삭제
