@@ -119,6 +119,7 @@ class MyShelterDetailView(APIView):
 
 
 class ShelterBusinessLicenseView(APIView):
+    permission_classes = [AllowAny]
     parser_classes = [MultiPartParser, FormParser]
 
     # 보호소 사업자등록증 업로드
