@@ -16,12 +16,16 @@ from .serializers import (
 )
 
 
-# 🧀 봉사활동 검색
+# 🧀 봉사활동 검색 (GET /api/recruitments/search)
 @extend_schema(
     summary="봉사활동 검색",
     parameters=[
         OpenApiParameter(
-            name="region", type=str, location=OpenApiParameter.QUERY, required=False
+            name="region",
+            type=str,
+            location=OpenApiParameter.QUERY,
+            required=False,
+            description="쉼표로 구분된 최대 3개 지역 (예: 서울,경기,인천)",
         ),
         OpenApiParameter(
             name="start_date", type=str, location=OpenApiParameter.QUERY, required=False
@@ -36,23 +40,29 @@ from .serializers import (
     responses={200: RecruitmentSerializer(many=True)},
 )
 class RecruitmentSearchView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
         queryset = Recruitment.objects.all()
 
-        region = request.query_params.get("region")
-        start_date = request.query_params.get("start_date")
-        end_date = request.query_params.get("end_date")
-        time = request.query_params.get("time")
+        # ✅ 지역 필터링
+        region_param = request.query_params.get("region")
+        regions = region_param.split(",") if region_param else []
 
-        # ✅ 지역 필터링 (shelter__region)
-        if region:
-            queryset = queryset.filter(shelter__region=region)
+        if regions:
+            q = Q()
+            for region in regions[:3]:  # 최대 3개까지 처리
+                q |= Q(shelter__region=region.strip())
+            queryset = queryset.filter(q)
 
         # ✅ 날짜 범위 필터링
+        start_date = request.query_params.get("start_date")
+        end_date = request.query_params.get("end_date")
         if start_date and end_date:
             queryset = queryset.filter(date__range=[start_date, end_date])
 
         # ✅ 시간 필터링
+        time = request.query_params.get("time")
         if time:
             queryset = queryset.filter(Q(start_time__lte=time) & Q(end_time__gte=time))
 

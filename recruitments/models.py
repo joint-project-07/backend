@@ -18,12 +18,11 @@ class RecruitmentStatus(models.TextChoices):
 
 # ✅ description 필드를 선택형 필드로 수정
 class DescriptionChoices(models.TextChoices):
-    CLEANING = "cleaning", "견사청소"
-    GROOMING = "grooming", "미용"
-    BATHING = "bathing", "목욕"
-    WALKING = "walking", "산책"
-    FEEDING = "feeding", "밥주기"
-    OTHER = "other", "기타"
+    CLEANING = "cleaning", "시설 청소"
+    BATHING = "bathing", "동물 목욕"
+    WALKING = "walking", "동물 산책"
+    FEEDING = "feeding", "사료 급여"
+    PLAY = "playing", "놀이 활동"
 
 
 class Recruitment(BaseModel):
