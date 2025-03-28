@@ -91,7 +91,6 @@ class VerifyEmailSerializer(serializers.Serializer):
 # 🍒보호소 회원가입
 class ShelterSignupSerializer(serializers.ModelSerializer):
     user = SignupSerializer()  # 중첩된 SignupSerializer (User 생성용)
-    business_license = serializers.FileField()  # 사업자등록증
 
     class Meta:
         model = Shelter
@@ -103,7 +102,6 @@ class ShelterSignupSerializer(serializers.ModelSerializer):
             "business_registration_email",
             "address",
             "region",
-            "business_license",
         ]
 
     def validate(self, data):

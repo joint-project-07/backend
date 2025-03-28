@@ -237,7 +237,6 @@ class VerifyEmailView(APIView):
 
 class ShelterSignupView(APIView):
     permission_classes = [AllowAny]
-    parser_classes = [MultiPartParser, FormParser]
     """
     🍒보호소 회원가입
     """
@@ -258,40 +257,40 @@ class ShelterSignupView(APIView):
                         "password_confirm": [
                             "비밀번호와 비밀번호 확인이 일치하지 않습니다."
                         ],
-                        "error": f"파일 업로드 실패: 실제 에러 메시지 ",
                     }
                 }
             },
         },
     )
     def post(self, request):
+        # ShelterSignupSerializer에 요청 데이터와 파일을 넘김
         serializer = ShelterSignupSerializer(data=request.data)
-        if serializer.is_valid():
-            # Shelter 객체가 생성됨
-            shelter = serializer.save()  # serializer.save()는 Shelter 객체를 반환
 
-            # 사업자 등록증 파일 업로드 (있다면)
-            business_license_file = request.FILES.get(
-                "business_license"
-            )  # 업로드된 파일 가져오기
+        if serializer.is_valid():
+            # business_license_file을 파일로 받아 처리
+            business_license_file = request.FILES.get("business_license_file")
+
+            # 파일이 존재하면 S3에 업로드하고 URL 반환
             if business_license_file:
                 try:
-                    # S3에 파일 업로드 후 URL 반환
                     file_url = upload_file_to_s3(business_license_file, "shelters")
-                    shelter.business_license_file = (
-                        file_url  # 업로드된 파일의 URL을 Shelter 객체에 저장
-                    )
-                    shelter.save()  # Shelter 객체 업데이트 (사업자 등록증 파일 URL 저장)
+                    # 사업자등록증 URL을 serializer의 validated_data에 추가
+                    serializer.validated_data["business_license_file"] = file_url
                 except Exception as e:
+                    # 업로드 실패 시 응답으로 에러 메시지 반환
                     return Response(
-                        {"error": f"파일 업로드 실패: {str(e)}"},
+                        {"error": f"사업자등록증 파일 업로드에 실패했습니다: {str(e)}"},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
+
+            # Shelter 및 User 객체 생성
+            shelter = serializer.save()
 
             return Response(
                 {"message": "회원가입이 완료되었습니다."},
                 status=status.HTTP_201_CREATED,
             )
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
