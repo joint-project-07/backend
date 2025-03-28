@@ -10,8 +10,8 @@ from common.utils import delete_file_from_s3, upload_file_to_s3, validate_file_e
 
 from .models import Recruitment, RecruitmentImage
 from .serializers import (
+    RecruitmentCreateUpdateSerializer,
     RecruitmentImageSerializer,
-    RecruitmentImageUploadSerializer,
     RecruitmentSerializer,
 )
 
@@ -106,17 +106,22 @@ class RecruitmentDetailView(APIView):
 
 # 🧀 봉사활동 등록
 @extend_schema(
-    summary="봉사활동 등록", request=RecruitmentSerializer, responses={201: dict}
+    summary="봉사활동 등록",
+    request=RecruitmentCreateUpdateSerializer,
+    responses={201: dict},
 )
 class RecruitmentCreateView(APIView):
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
         shelter = request.user.shelter
         data = request.data.copy()
         data["shelter"] = shelter.id
 
-        serializer = RecruitmentSerializer(data=data)
+        serializer = RecruitmentCreateUpdateSerializer(
+            data=request.data, context={"request": request}
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(
@@ -169,39 +174,6 @@ class RecruitmentUpdateView(APIView):
 
 class RecruitmentImageView(APIView):
     parser_classes = [MultiPartParser, FormParser]
-
-    # 봉사 활동 이미지 업로드
-    @extend_schema(
-        summary="봉사활동 이미지 업로드",
-        request=RecruitmentImageUploadSerializer,
-        responses={201: RecruitmentImageSerializer(many=True)},
-    )
-    def post(self, request):
-        serializer = RecruitmentImageUploadSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        files = serializer.validated_data["images"]
-
-        if not files:
-            return Response(
-                {"error": "이미지를 업로드해야 합니다."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        uploaded_images = []
-
-        for file in files:
-            try:
-                validate_file_extension(file, "recruitments")  # 파일 검증
-                image_url = upload_file_to_s3(file, "recruitments")
-                image = RecruitmentImage.objects.create(image_url=image_url)
-                uploaded_images.append(image)
-            except ValueError as e:
-                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response(
-            RecruitmentImageSerializer(uploaded_images, many=True).data,
-            status=status.HTTP_201_CREATED,
-        )
 
     # 특정 봉사활동의 모든 이미지 조회
     @extend_schema(
