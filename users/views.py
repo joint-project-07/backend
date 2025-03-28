@@ -20,7 +20,6 @@ from rest_framework_simplejwt.tokens import (
 
 from common.utils import delete_file_from_s3, upload_file_to_s3, validate_file_extension
 from shelters.models import Shelter
-from shelters.serializers import ShelterBusinessLicenseUploadSerializer
 
 from .models import User
 from .serializers import (  # UserUpdateSerializer,
@@ -237,6 +236,7 @@ class VerifyEmailView(APIView):
 
 class ShelterSignupView(APIView):
     permission_classes = [AllowAny]
+    parser_classes = [MultiPartParser, FormParser]
     """
     🍒보호소 회원가입
     """
@@ -263,28 +263,44 @@ class ShelterSignupView(APIView):
         },
     )
     def post(self, request):
-        # ShelterSignupSerializer에 요청 데이터와 파일을 넘김
+        # ShelterSignupSerializer에 요청 데이터 넘기기
         serializer = ShelterSignupSerializer(data=request.data)
 
         if serializer.is_valid():
-            # business_license_file을 파일로 받아 처리
-            business_license_file = request.FILES.get("business_license_file")
+            # 비밀번호 해싱과 검증이 완료된 validated_data로 User와 Shelter 인스턴스를 생성
+            validated_data = serializer.validated_data
 
-            # 파일이 존재하면 S3에 업로드하고 URL 반환
+            # User 객체 생성
+            user = User.objects.create_user(
+                email=validated_data["email"],
+                password=validated_data["password"],
+                name=validated_data["name"],
+                contact_number=validated_data["contact_number"],
+            )
+
+            # 사업자등록증 파일 처리
+            business_license_file = request.FILES.get("business_license_file", None)
             if business_license_file:
-                try:
-                    file_url = upload_file_to_s3(business_license_file, "shelters")
-                    # 사업자등록증 URL을 serializer의 validated_data에 추가
-                    serializer.validated_data["business_license_file"] = file_url
-                except Exception as e:
-                    # 업로드 실패 시 응답으로 에러 메시지 반환
-                    return Response(
-                        {"error": f"사업자등록증 파일 업로드에 실패했습니다: {str(e)}"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+                # 파일을 S3에 업로드하고 URL 반환
+                file_url = upload_file_to_s3(business_license_file, "shelters")
+            else:
+                file_url = None
 
-            # Shelter 및 User 객체 생성
-            shelter = serializer.save()
+            # Shelter 객체 생성
+            Shelter.objects.create(
+                user=user,
+                name=validated_data["name"],
+                shelter_type=validated_data["shelter_type"],
+                business_registration_number=validated_data[
+                    "business_registration_number"
+                ],
+                business_registration_email=validated_data[
+                    "business_registration_email"
+                ],
+                address=validated_data["address"],
+                region=validated_data["region"],
+                business_license_file=file_url,  # 사업자등록증 파일 URL 저장
+            )
 
             return Response(
                 {"message": "회원가입이 완료되었습니다."},

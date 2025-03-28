@@ -90,46 +90,76 @@ class VerifyEmailSerializer(serializers.Serializer):
 
 # 🍒보호소 회원가입
 class ShelterSignupSerializer(serializers.ModelSerializer):
-    user = SignupSerializer()  # 중첩된 SignupSerializer (User 생성용)
+    password = serializers.CharField(
+        write_only=True
+    )  # 요청에서만 사용 응답에선 숨김(get요청(응답)에는 안보임)
+    password_confirm = serializers.CharField(write_only=True)  # 같은 이유
+    shelter_name = serializers.CharField(max_length=255, source="name")
+    email = serializers.EmailField()  # User 모델의 email 필드를 받음
+    contact_number = serializers.CharField()  # User 모델의 contact_number 필드를 받음
+    business_license_file = serializers.FileField(
+        write_only=True
+    )  # 사업자등록증 파일 추가
 
     class Meta:
         model = Shelter
         fields = [
-            "user",  # User 데이터를 포함
+            "email",
+            "password",
+            "password_confirm",
             "name",
+            "contact_number",
+            "shelter_name",
             "shelter_type",
             "business_registration_number",
             "business_registration_email",
             "address",
             "region",
+            "business_license_file",
         ]
+        extra_kwargs = {
+            "email": {
+                "validators": []
+            },  # 기본 유니크 검증 비활성화!(email 필드의 기본 유니크 검증을 끄고, 대신 우리가 직접 검증하겠다)
+        }
 
     def validate(self, data):
-        user_data = data.get("user")
+        errors = {}  # 여러 개의 에러를 모을 딕셔너리
 
-        # SignupSerializer의 validate()를 직접 호출하여 검증 (중복 검사)
-        user_serializer = SignupSerializer(data=user_data)
-        user_serializer.is_valid(raise_exception=True)
+        # 🧀 이메일 중복 검사
+        if User.objects.filter(email=data["email"]).exists():
+            errors["email"] = ["이미 사용 중인 이메일입니다."]
 
-        return data  # 검증된 데이터 반환
+        # 🧀 전화번호 중복 검사
+        if User.objects.filter(contact_number=data["contact_number"]).exists():
+            errors["contact_number_duplicate"] = ["이미 등록된 전화번호입니다."]
+
+        # 🧀 비밀번호 길이 검증
+        if len(data["password"]) < 8:
+            errors["password"] = ["비밀번호는 최소 8자리 이상이어야 합니다."]
+
+        # 🧀 전화번호 형식 검증
+        if not re.fullmatch(r"^01[0-9]\d{7,8}$", data["contact_number"]):
+            errors["contact_number_format"] = [
+                "전화번호는 01012345678 형식이어야 합니다."
+            ]
+
+        # 🧀 비밀번호 확인
+        if data["password"] != data["password_confirm"]:
+            errors["password_confirm"] = [
+                "비밀번호와 비밀번호 확인이 일치하지 않습니다."
+            ]
+
+        if errors:  # 하나라도 에러가 있으면 ValidationError 발생
+            raise serializers.ValidationError(errors)
+
+        return data
 
     def create(self, validated_data):
-        user_data = validated_data.pop("user")  # User 데이터만 분리해서
-        user_data.pop("password_confirm", None)  # 'password_confirm'을 실제로 제거
-        # 비밀번호를 해싱하여 저장
-        if user_data.get("password"):
-            user_data["password"] = make_password(user_data["password"])
-
-        user = User.objects.create(
-            **user_data, is_shelter=True
-        )  # 보호소 관리자인 경우 is_shelter=True로 설정
-
-        shelter_data = validated_data
-        shelter = Shelter.objects.create(
-            user_id=user.id, **shelter_data
-        )  # 나머지 Shelter 객체 생성
-
-        return shelter  # 생성된 Shelter 객체 반환
+        validated_data.pop("password_confirm")  # 비밀번호 확인은 저장하지 않음
+        password = validated_data.pop("password")  # 비밀번호 추출
+        validated_data["password"] = make_password(password)  # 비밀번호 해싱
+        return validated_data  # 객체 생성은 뷰에서 처리
 
 
 # 🍒이메일 로그인(봉사자/보호소)
