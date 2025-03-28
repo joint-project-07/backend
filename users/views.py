@@ -19,6 +19,8 @@ from rest_framework_simplejwt.tokens import (
 )
 
 from common.utils import delete_file_from_s3, upload_file_to_s3, validate_file_extension
+from shelters.models import Shelter
+from shelters.serializers import ShelterBusinessLicenseUploadSerializer
 
 from .models import User
 from .serializers import (  # UserUpdateSerializer,
@@ -235,6 +237,7 @@ class VerifyEmailView(APIView):
 
 class ShelterSignupView(APIView):
     permission_classes = [AllowAny]
+    parser_classes = [MultiPartParser, FormParser]
     """
     🍒보호소 회원가입
     """
@@ -255,6 +258,7 @@ class ShelterSignupView(APIView):
                         "password_confirm": [
                             "비밀번호와 비밀번호 확인이 일치하지 않습니다."
                         ],
+                        "error": f"파일 업로드 실패: 실제 에러 메시지 ",
                     }
                 }
             },
@@ -263,7 +267,29 @@ class ShelterSignupView(APIView):
     def post(self, request):
         serializer = ShelterSignupSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            # Shelter 객체가 생성됨
+            shelter = serializer.save()  # serializer.save()는 Shelter 객체를 반환
+
+            # 사업자 등록증 파일 업로드 (있다면)
+            business_license_file = request.FILES.get(
+                "business_license"
+            )  # 업로드된 파일 가져오기
+            if business_license_file:
+                try:
+                    # S3에 파일 업로드 후 URL 반환
+                    file_url = upload_file_to_s3(
+                        business_license_file, "shelters", shelter.id
+                    )
+                    shelter.business_license_file = (
+                        file_url  # 업로드된 파일의 URL을 Shelter 객체에 저장
+                    )
+                    shelter.save()  # Shelter 객체 업데이트 (사업자 등록증 파일 URL 저장)
+                except Exception as e:
+                    return Response(
+                        {"error": f"파일 업로드 실패: {str(e)}"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
             return Response(
                 {"message": "회원가입이 완료되었습니다."},
                 status=status.HTTP_201_CREATED,
