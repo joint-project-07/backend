@@ -147,13 +147,19 @@ class MyRecruitmentListView(APIView):
         responses={200: RecruitmentSerializer(many=True)},
     )
     def get(self, request):
-        shelter = request.user.shelter # 현재 로그인한 사용자의 보호소 정보 가져오기
+        shelter = request.user.shelter  # 현재 로그인한 사용자의 보호소 정보 가져오기
         if not shelter:
-            return Response({"error": "보호소 관리자만 조회할 수 있습니다."}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"error": "보호소 관리자만 조회할 수 있습니다."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         queryset = Recruitment.objects.filter(shelter=shelter)
         if not queryset.exists():
-            return Response({"message": "등록한 봉사활동이 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"message": "등록한 봉사활동이 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         serializer = RecruitmentSerializer(queryset, many=True)
         return Response({"recruitments": serializer.data}, status=status.HTTP_200_OK)

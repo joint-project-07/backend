@@ -1,13 +1,14 @@
 from django.urls import path
 
 from .views import (
+    MyRecruitmentListView,
     RecruitmentCreateView,
     RecruitmentDetailView,
     RecruitmentImageDeleteView,
     RecruitmentImageView,
     RecruitmentListView,
     RecruitmentSearchView,
-    RecruitmentUpdateView, MyRecruitmentListView,
+    RecruitmentUpdateView,
 )
 
 urlpatterns = [
