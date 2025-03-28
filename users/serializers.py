@@ -135,7 +135,7 @@ class ShelterSignupSerializer(serializers.ModelSerializer):
         business_license_file = validated_data.get("business_license")
         if business_license_file:
             file_url = upload_file_to_s3(
-                business_license_file, "shelters", shelter.id
+                business_license_file, "shelters"
             )  # S3에 파일 업로드
             shelter.business_license_file = file_url  # 사업자 등록증 URL 저장
             shelter.save()
