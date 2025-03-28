@@ -76,7 +76,7 @@ class RecruitmentDetailSerializer(serializers.ModelSerializer):
 class RecruitmentImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = RecruitmentImage
-        fields = ["id", "recruitment", "image_url"]
+        fields = ["id", "image_url"]
 
 
 @extend_schema_serializer(
