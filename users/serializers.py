@@ -5,6 +5,7 @@ from django.contrib.auth.password_validation import validate_password
 from drf_spectacular.utils import OpenApiExample, extend_schema_serializer
 from rest_framework import serializers
 
+from common.utils import upload_file_to_s3
 from shelters.models import Shelter
 
 from .models import User
@@ -90,6 +91,7 @@ class VerifyEmailSerializer(serializers.Serializer):
 # 🍒보호소 회원가입
 class ShelterSignupSerializer(serializers.ModelSerializer):
     user = SignupSerializer()  # 중첩된 SignupSerializer (User 생성용)
+    business_license = serializers.FileField(required=False)  # 사업자등록증
 
     class Meta:
         model = Shelter
@@ -101,6 +103,7 @@ class ShelterSignupSerializer(serializers.ModelSerializer):
             "business_registration_email",
             "address",
             "region",
+            "business_license",
         ]
 
     def validate(self, data):
@@ -127,6 +130,15 @@ class ShelterSignupSerializer(serializers.ModelSerializer):
         shelter = Shelter.objects.create(
             user_id=user.id, **shelter_data
         )  # 나머지 Shelter 객체 생성
+
+        # 사업자 등록증 업로드
+        business_license_file = validated_data.get("business_license")
+        if business_license_file:
+            file_url = upload_file_to_s3(
+                business_license_file, "shelters", shelter.id
+            )  # S3에 파일 업로드
+            shelter.business_license_file = file_url  # 사업자 등록증 URL 저장
+            shelter.save()
 
         return shelter  # 생성된 Shelter 객체 반환
 
