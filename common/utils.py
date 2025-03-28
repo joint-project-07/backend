@@ -53,18 +53,18 @@ def generate_unique_filename(filename):
 
 
 # 🌸 파일 업로드 (S3에 저장 후 URL 반환)
-def upload_file_to_s3(file, instance_type, object_identifier):
+def upload_file_to_s3(file, instance_type):
     s3_client = get_s3_client()
     validate_file_extension(file, instance_type)
     unique_filename = generate_unique_filename(file.name)
 
     # S3 저장 경로 설정
     if instance_type == "users":
-        s3_path = f"users/{object_identifier}/{unique_filename}"
+        s3_path = f"users/{unique_filename}"
     elif instance_type == "shelters":
-        s3_path = f"shelters/{object_identifier}/{unique_filename}"
+        s3_path = f"licenses/{unique_filename}"
     elif instance_type == "recruitments":
-        s3_path = f"recruitments/{object_identifier}/{unique_filename}"
+        s3_path = f"recruitments/{unique_filename}"
     else:
         raise ValueError(f"Invalid instance type: {instance_type}")
 
