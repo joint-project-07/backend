@@ -277,9 +277,7 @@ class ShelterSignupView(APIView):
             if business_license_file:
                 try:
                     # S3에 파일 업로드 후 URL 반환
-                    file_url = upload_file_to_s3(
-                        business_license_file, "shelters", shelter.id
-                    )
+                    file_url = upload_file_to_s3(business_license_file, "shelters")
                     shelter.business_license_file = (
                         file_url  # 업로드된 파일의 URL을 Shelter 객체에 저장
                     )
