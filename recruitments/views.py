@@ -223,7 +223,6 @@ class RecruitmentImageView(APIView):
         )
 
 
-
 class RecruitmentImageDeleteView(APIView):
     # 봉사 활동 이미지 개별 삭제
     @extend_schema(summary="봉사활동 이미지 삭제", responses={204: None})
