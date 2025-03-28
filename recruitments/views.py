@@ -93,6 +93,8 @@ class RecruitmentListView(APIView):
 # 🧀 봉사활동 상세 조회
 @extend_schema(summary="봉사활동 상세 조회", responses={200: RecruitmentSerializer})
 class RecruitmentDetailView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request, pk):
         recruitment = Recruitment.objects.filter(pk=pk).first()
         if not recruitment:
