@@ -94,7 +94,8 @@ class ShelterSignupSerializer(serializers.ModelSerializer):
         write_only=True
     )  # 요청에서만 사용 응답에선 숨김(get요청(응답)에는 안보임)
     password_confirm = serializers.CharField(write_only=True)  # 같은 이유
-    shelter_name = serializers.CharField(max_length=255, source="name")
+    user_name = serializers.CharField(max_length=255)  #  유저 이름
+    shelter_name = serializers.CharField(max_length=255)  #  보호소 이름
     email = serializers.EmailField()  # User 모델의 email 필드를 받음
     contact_number = serializers.CharField()  # User 모델의 contact_number 필드를 받음
     business_license_file = serializers.FileField(
@@ -107,7 +108,7 @@ class ShelterSignupSerializer(serializers.ModelSerializer):
             "email",
             "password",
             "password_confirm",
-            "name",
+            "user_name",
             "contact_number",
             "shelter_name",
             "shelter_type",

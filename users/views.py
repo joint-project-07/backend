@@ -274,7 +274,7 @@ class ShelterSignupView(APIView):
             user = User.objects.create_user(
                 email=validated_data["email"],
                 password=validated_data["password"],
-                name=validated_data["name"],
+                name=validated_data["user_name"],
                 contact_number=validated_data["contact_number"],
             )
 
@@ -289,7 +289,7 @@ class ShelterSignupView(APIView):
             # Shelter 객체 생성
             Shelter.objects.create(
                 user=user,
-                name=validated_data["name"],
+                name=validated_data["shelter_name"],
                 shelter_type=validated_data["shelter_type"],
                 business_registration_number=validated_data[
                     "business_registration_number"
