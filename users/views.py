@@ -826,7 +826,7 @@ class ProfileImageUploadDeleteView(APIView):
             # 파일 검증 및 업로드
             try:
                 validate_file_extension(file, "users")
-                s3_url = upload_file_to_s3(file, "users", user.id)
+                s3_url = upload_file_to_s3(file, "users")
             except ValueError as e:
                 return Response(
                     {"error": "업로드에 실패하였습니다.", "details": str(e)},
@@ -842,7 +842,7 @@ class ProfileImageUploadDeleteView(APIView):
             )
 
         return Response(
-            {"error": "오류"},
+            {"error": "업로드에 실패하였습니다."},
             status=status.HTTP_400_BAD_REQUEST,
         )
 

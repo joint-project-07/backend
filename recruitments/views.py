@@ -10,8 +10,8 @@ from common.utils import delete_file_from_s3, upload_file_to_s3, validate_file_e
 
 from .models import Recruitment, RecruitmentImage
 from .serializers import (
+    RecruitmentCreateUpdateSerializer,
     RecruitmentImageSerializer,
-    RecruitmentImageUploadSerializer,
     RecruitmentSerializer,
 )
 
@@ -93,6 +93,8 @@ class RecruitmentListView(APIView):
 # 🧀 봉사활동 상세 조회
 @extend_schema(summary="봉사활동 상세 조회", responses={200: RecruitmentSerializer})
 class RecruitmentDetailView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request, pk):
         recruitment = Recruitment.objects.filter(pk=pk).first()
         if not recruitment:
@@ -106,17 +108,22 @@ class RecruitmentDetailView(APIView):
 
 # 🧀 봉사활동 등록
 @extend_schema(
-    summary="봉사활동 등록", request=RecruitmentSerializer, responses={201: dict}
+    summary="봉사활동 등록",
+    request=RecruitmentCreateUpdateSerializer,
+    responses={201: dict},
 )
 class RecruitmentCreateView(APIView):
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
         shelter = request.user.shelter
         data = request.data.copy()
         data["shelter"] = shelter.id
 
-        serializer = RecruitmentSerializer(data=data)
+        serializer = RecruitmentCreateUpdateSerializer(
+            data=request.data, context={"request": request}
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(
@@ -167,51 +174,8 @@ class RecruitmentUpdateView(APIView):
         )
 
 
-# 🧀 봉사활동 이미지 업로드 & 조회
 class RecruitmentImageView(APIView):
     parser_classes = [MultiPartParser, FormParser]
-
-    @extend_schema(
-        summary="봉사활동 이미지 업로드",
-        request=RecruitmentImageUploadSerializer,
-        responses={201: RecruitmentImageSerializer(many=True)},
-    )
-    def post(self, request, recruitment_id):
-        serializer = RecruitmentImageUploadSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        files = serializer.validated_data["images"]
-
-        if not files:
-            return Response(
-                {"error": "이미지를 업로드해야 합니다."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # 해당 봉사 활동 일정이 존재하는지 확인
-        recruitment = Recruitment.objects.filter(id=recruitment_id).first()
-        if not recruitment:
-            return Response(
-                {"error": "해당 봉사활동을 찾을 수 없습니다."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        uploaded_images = []
-
-        for file in files:
-            try:
-                validate_file_extension(file, "recruitments")  # 파일 검증
-                image_url = upload_file_to_s3(file, "recruitments", recruitment_id)
-                image = RecruitmentImage.objects.create(
-                    recruitment=recruitment, image_url=image_url
-                )
-                uploaded_images.append(image)
-            except ValueError as e:
-                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response(
-            RecruitmentImageSerializer(uploaded_images, many=True).data,
-            status=status.HTTP_201_CREATED,
-        )
 
     # 특정 봉사활동의 모든 이미지 조회
     @extend_schema(
@@ -233,8 +197,8 @@ class RecruitmentImageView(APIView):
         )
 
 
-# 🧀 봉사활동 이미지 삭제
 class RecruitmentImageDeleteView(APIView):
+    # 봉사 활동 이미지 개별 삭제
     @extend_schema(summary="봉사활동 이미지 삭제", responses={204: None})
     def delete(self, request, image_id):
         image = RecruitmentImage.objects.filter(id=image_id).first()

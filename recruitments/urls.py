@@ -19,7 +19,7 @@ urlpatterns = [
         "update/<int:pk>/", RecruitmentUpdateView.as_view(), name="recruitment-update"
     ),
     path(
-        "<int:recruitment_id>/images/",
+        "images/",
         RecruitmentImageView.as_view(),
         name="recruitment-image",
     ),
