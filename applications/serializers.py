@@ -9,7 +9,7 @@ from users.serializers import UserSerializer
 class ApplicationRecruitmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recruitment
-        fields = ["id", "date", "start_time", "end_time", "status"]
+        fields = ["id", "date", "start_time", "end_time", "status", "type", "supplies"]
 
 
 class ApplicationShelterSerializer(serializers.ModelSerializer):
