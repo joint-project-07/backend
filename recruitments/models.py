@@ -33,16 +33,7 @@ class Recruitment(BaseModel):
     date = models.DateField(null=False)  # 봉사 날짜
     start_time = models.TimeField(null=False)  # 시작 시간
     end_time = models.TimeField(null=False)  # 종료 시간
-    type = models.CharField(
-        max_length=50, choices=RecruitmentTypeChoices.choices, null=False
-    )  # 봉사 종류
-    description = models.CharField(
-        max_length=50,
-        choices=DescriptionChoices.choices,
-        null=True,
-        blank=True,
-        default="",
-    )  # ✅ 선택형 필드
+    type = models.JSONField(default=list)
     supplies = models.CharField(max_length=200, null=True, blank=True)  # 봉사 준비물
     status = models.CharField(
         max_length=20, choices=RecruitmentStatus.choices, default=RecruitmentStatus.OPEN
