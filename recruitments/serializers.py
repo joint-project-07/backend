@@ -6,9 +6,17 @@ from users.models import User
 from .models import Recruitment, RecruitmentImage
 
 
+# 이미지 조회 serializer
+class RecruitmentImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RecruitmentImage
+        fields = ["id", "image_url"]
+
+
 # ✅ 봉사활동 시리얼라이저
 class RecruitmentSerializer(serializers.ModelSerializer):
     shelter_name = serializers.CharField(source="shelter.name", read_only=True)
+    images = RecruitmentImageSerializer(read_only=True)
 
     class Meta:
         model = Recruitment
@@ -22,8 +30,11 @@ class RecruitmentSerializer(serializers.ModelSerializer):
             "type",
             "supplies",
             "status",
+            "images",
         ]
 
+
+recruitment_types = ["cleaning", "walking", "feeding", "other"]
 
 # ✅ 봉사활동 등록/수정 시리얼라이저
 @extend_schema_serializer(
@@ -59,6 +70,15 @@ class RecruitmentCreateUpdateSerializer(serializers.ModelSerializer):
             "type": {"required": True},  # ✅ 필수 값 설정
         }
 
+    def validate(self, data):
+        type_names = data["type"]
+
+        invalid_types = [t for t in type_names if t not in recruitment_types]
+        if invalid_types:
+            raise serializers.ValidationError(f"Invalid type: {invalid_types}")
+
+        return data
+
     def create(self, validated_data):
         # ✅ 보호소 연결 → 현재 로그인된 사용자 보호소와 연결
         images = validated_data.pop("images", [])
@@ -90,6 +110,7 @@ class RecruitmentCreateUpdateSerializer(serializers.ModelSerializer):
 
 # ✅ 봉사활동 상세 조회 시리얼라이저
 class RecruitmentDetailSerializer(serializers.ModelSerializer):
+    images = RecruitmentImageSerializer(read_only=True)
     shelter_name = serializers.CharField(source="shelter.name", read_only=True)
 
     class Meta:
@@ -104,6 +125,7 @@ class RecruitmentDetailSerializer(serializers.ModelSerializer):
             "type",
             "supplies",
             "status",
+            "images",
         ]
 
 
@@ -112,24 +134,3 @@ class RecruitmentApplicantSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["id", "profile_image", "name", "contact_number"]
-
-
-# 이미지 조회 serializer
-class RecruitmentImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = RecruitmentImage
-        fields = ["id", "image_url"]
-
-
-# 이미지 업로드 serializer
-# @extend_schema_serializer(
-#     examples=[
-#         OpenApiExample(
-#             name="이미지 업로드",
-#             value={"images": ["이미지1", "이미지2"]},
-#             request_only=True,
-#         )
-#     ]
-# )
-# class RecruitmentImageUploadSerializer(serializers.Serializer):
-#     images = serializers.ListField(child=serializers.ImageField(), allow_empty=False)

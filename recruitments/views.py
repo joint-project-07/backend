@@ -7,11 +7,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from applications.models import Application
-from applications.serializers import ApplicationSerializer
-from common.utils import delete_file_from_s3, upload_file_to_s3, validate_file_extension
+from common.utils import delete_file_from_s3
 
 from .models import Recruitment, RecruitmentImage
-from .serializers import (  # RecruitmentImageUploadSerializer,
+from .serializers import (
     RecruitmentApplicantSerializer,
     RecruitmentCreateUpdateSerializer,
     RecruitmentImageSerializer,
@@ -125,7 +124,7 @@ class RecruitmentCreateView(APIView):
         data["shelter"] = shelter.id
 
         serializer = RecruitmentCreateUpdateSerializer(
-            data=request.data, context={"request": request}
+            data=request.data, context={"request": request},
         )
         if serializer.is_valid():
             serializer.save()
