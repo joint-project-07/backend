@@ -124,7 +124,8 @@ class RecruitmentCreateView(APIView):
         data["shelter"] = shelter.id
 
         serializer = RecruitmentCreateUpdateSerializer(
-            data=request.data, context={"request": request},
+            data=request.data,
+            context={"request": request},
         )
         if serializer.is_valid():
             serializer.save()
