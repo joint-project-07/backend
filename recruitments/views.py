@@ -6,10 +6,13 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from applications.models import Application
+from applications.serializers import ApplicationSerializer
 from common.utils import delete_file_from_s3, upload_file_to_s3, validate_file_extension
 
 from .models import Recruitment, RecruitmentImage
-from .serializers import (
+from .serializers import (  # RecruitmentImageUploadSerializer,
+    RecruitmentApplicantSerializer,
     RecruitmentCreateUpdateSerializer,
     RecruitmentImageSerializer,
     RecruitmentSerializer,
@@ -138,6 +141,62 @@ class RecruitmentCreateView(APIView):
             {"code": 400, "message": serializer.errors},
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+
+# 등록한 봉사활동 목록 조회
+class MyRecruitmentListView(APIView):
+    @extend_schema(
+        summary="등록한 봉사활동 조회",
+        responses={200: RecruitmentSerializer(many=True)},
+    )
+    def get(self, request):
+        shelter = request.user.shelter  # 현재 로그인한 사용자의 보호소 정보 가져오기
+        if not shelter:
+            return Response(
+                {"error": "보호소 관리자만 조회할 수 있습니다."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        queryset = Recruitment.objects.filter(shelter=shelter)
+        if not queryset.exists():
+            return Response(
+                {"message": "등록한 봉사활동이 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = RecruitmentSerializer(queryset, many=True)
+        return Response({"recruitments": serializer.data}, status=status.HTTP_200_OK)
+
+
+# 특정 봉사활동 신청자 목록 조회
+class RecruitmentApplicantView(APIView):
+    @extend_schema(
+        summary="특정 봉사활동 신청자 목록 조회",
+        responses={200: RecruitmentApplicantSerializer(many=True)},
+    )
+    def get(self, request, recruitment_id):
+        shelter = request.user.shelter
+        recruitment = Recruitment.objects.filter(
+            id=recruitment_id, shelter=shelter
+        ).first()
+
+        if not recruitment:
+            return Response(
+                {"error": "해당 봉사활동을 찾을 수 없습니다."},
+                status.HTTP_404_NOT_FOUND,
+            )
+
+        applications = Application.objects.filter(
+            recruitment=recruitment
+        ).select_related("user")
+        if not applications.exists():
+            return Response(
+                {"message": "신청한 봉사자가 없습니다."}, status.HTTP_404_NOT_FOUND
+            )
+
+        users = [app.user for app in applications]
+        serializer = RecruitmentApplicantSerializer(users, many=True)
+        return Response({"applicants": serializer.data}, status=status.HTTP_200_OK)
 
 
 # 🧀 봉사활동 수정
