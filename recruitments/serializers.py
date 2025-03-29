@@ -2,6 +2,7 @@ from drf_spectacular.utils import OpenApiExample, extend_schema_serializer
 from rest_framework import serializers
 
 from users.models import User
+
 from .models import Recruitment, RecruitmentImage
 
 
@@ -118,6 +119,7 @@ class RecruitmentImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = RecruitmentImage
         fields = ["id", "image_url"]
+
 
 # 이미지 업로드 serializer
 # @extend_schema_serializer(

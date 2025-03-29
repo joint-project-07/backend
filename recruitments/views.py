@@ -6,17 +6,16 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from common.utils import delete_file_from_s3, upload_file_to_s3, validate_file_extension
 from applications.models import Application
 from applications.serializers import ApplicationSerializer
+from common.utils import delete_file_from_s3, upload_file_to_s3, validate_file_extension
 
 from .models import Recruitment, RecruitmentImage
-from .serializers import (
+from .serializers import (  # RecruitmentImageUploadSerializer,
+    RecruitmentApplicantSerializer,
     RecruitmentCreateUpdateSerializer,
     RecruitmentImageSerializer,
-    # RecruitmentImageUploadSerializer,
     RecruitmentSerializer,
-    RecruitmentApplicantSerializer,
 )
 
 
@@ -177,14 +176,23 @@ class RecruitmentApplicantView(APIView):
     )
     def get(self, request, recruitment_id):
         shelter = request.user.shelter
-        recruitment = Recruitment.objects.filter(id=recruitment_id, shelter=shelter).first()
+        recruitment = Recruitment.objects.filter(
+            id=recruitment_id, shelter=shelter
+        ).first()
 
         if not recruitment:
-            return Response({"error": "해당 봉사활동을 찾을 수 없습니다."}, status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "해당 봉사활동을 찾을 수 없습니다."},
+                status.HTTP_404_NOT_FOUND,
+            )
 
-        applications = Application.objects.filter(recruitment=recruitment).select_related("user")
+        applications = Application.objects.filter(
+            recruitment=recruitment
+        ).select_related("user")
         if not applications.exists():
-            return Response({"message": "신청한 봉사자가 없습니다."}, status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"message": "신청한 봉사자가 없습니다."}, status.HTTP_404_NOT_FOUND
+            )
 
         users = [app.user for app in applications]
         serializer = RecruitmentApplicantSerializer(users, many=True)
