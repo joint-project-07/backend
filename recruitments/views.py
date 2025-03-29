@@ -7,12 +7,16 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.utils import delete_file_from_s3, upload_file_to_s3, validate_file_extension
+from applications.models import Application
+from applications.serializers import ApplicationSerializer
 
 from .models import Recruitment, RecruitmentImage
 from .serializers import (
     RecruitmentCreateUpdateSerializer,
     RecruitmentImageSerializer,
+    # RecruitmentImageUploadSerializer,
     RecruitmentSerializer,
+    RecruitmentApplicantSerializer,
 )
 
 
@@ -163,6 +167,28 @@ class MyRecruitmentListView(APIView):
 
         serializer = RecruitmentSerializer(queryset, many=True)
         return Response({"recruitments": serializer.data}, status=status.HTTP_200_OK)
+
+
+# 특정 봉사활동 신청자 목록 조회
+class RecruitmentApplicantView(APIView):
+    @extend_schema(
+        summary="특정 봉사활동 신청자 목록 조회",
+        responses={200: RecruitmentApplicantSerializer(many=True)},
+    )
+    def get(self, request, recruitment_id):
+        shelter = request.user.shelter
+        recruitment = Recruitment.objects.filter(id=recruitment_id, shelter=shelter).first()
+
+        if not recruitment:
+            return Response({"error": "해당 봉사활동을 찾을 수 없습니다."}, status.HTTP_404_NOT_FOUND)
+
+        applications = Application.objects.filter(recruitment=recruitment).select_related("user")
+        if not applications.exists():
+            return Response({"message": "신청한 봉사자가 없습니다."}, status.HTTP_404_NOT_FOUND)
+
+        users = [app.user for app in applications]
+        serializer = RecruitmentApplicantSerializer(users, many=True)
+        return Response({"applicants": serializer.data}, status=status.HTTP_200_OK)
 
 
 # 🧀 봉사활동 수정

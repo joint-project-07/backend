@@ -8,7 +8,7 @@ from .views import (
     RecruitmentImageView,
     RecruitmentListView,
     RecruitmentSearchView,
-    RecruitmentUpdateView,
+    RecruitmentUpdateView, RecruitmentApplicantView,
 )
 
 urlpatterns = [
@@ -17,6 +17,7 @@ urlpatterns = [
     path("<int:pk>/", RecruitmentDetailView.as_view(), name="recruitment-detail"),
     path("create/", RecruitmentCreateView.as_view(), name="recruitment-create"),
     path("mylist/", MyRecruitmentListView.as_view(), name="my-recruitment-list"),
+    path("<int:recruitment_id>/applicants/", RecruitmentApplicantView.as_view(), name="recruitment-applicant"),
     path(
         "update/<int:pk>/", RecruitmentUpdateView.as_view(), name="recruitment-update"
     ),
