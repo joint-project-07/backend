@@ -16,6 +16,7 @@ class RecruitmentImageSerializer(serializers.ModelSerializer):
 # ✅ 봉사활동 시리얼라이저
 class RecruitmentSerializer(serializers.ModelSerializer):
     shelter_name = serializers.CharField(source="shelter.name", read_only=True)
+    shelter_region = serializers.CharField(source="shelter.region", read_only=True)
     images = RecruitmentImageSerializer(read_only=True)
 
     class Meta:
@@ -29,6 +30,7 @@ class RecruitmentSerializer(serializers.ModelSerializer):
             "end_time",
             "type",
             "supplies",
+            "shelter_region",
             "status",
             "images",
         ]
@@ -113,6 +115,7 @@ class RecruitmentCreateUpdateSerializer(serializers.ModelSerializer):
 class RecruitmentDetailSerializer(serializers.ModelSerializer):
     images = RecruitmentImageSerializer(read_only=True)
     shelter_name = serializers.CharField(source="shelter.name", read_only=True)
+    shelter_region = serializers.CharField(source="shelter.region", read_only=True)
 
     class Meta:
         model = Recruitment
@@ -125,6 +128,7 @@ class RecruitmentDetailSerializer(serializers.ModelSerializer):
             "end_time",
             "type",
             "supplies",
+            "shelter_region",
             "status",
             "images",
         ]
