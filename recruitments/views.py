@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.utils.dateparse import parse_time
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -18,25 +19,48 @@ from .serializers import (
 )
 
 
+from django.db.models import Q
+from django.utils.dateparse import parse_time
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
+from rest_framework import status
+
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
+
+from .models import Recruitment
+from .serializers import RecruitmentSerializer
+
+
 # 🧀 봉사활동 검색 (GET /api/recruitments/search)
 @extend_schema(
     summary="봉사활동 검색",
+    description="지역, 날짜, 시간 범위로 봉사활동을 검색합니다.",
     parameters=[
         OpenApiParameter(
             name="region",
-            type=str,
             location=OpenApiParameter.QUERY,
-            required=False,
             description="쉼표로 구분된 최대 3개 지역 (예: 서울,경기,인천)",
         ),
         OpenApiParameter(
-            name="start_date", type=str, location=OpenApiParameter.QUERY, required=False
+            name="start_date",
+            location=OpenApiParameter.QUERY,
+            description="검색 시작일 (YYYY-MM-DD)",
         ),
         OpenApiParameter(
-            name="end_date", type=str, location=OpenApiParameter.QUERY, required=False
+            name="end_date",
+            location=OpenApiParameter.QUERY,
+            description="검색 종료일 (YYYY-MM-DD)",
         ),
         OpenApiParameter(
-            name="time", type=str, location=OpenApiParameter.QUERY, required=False
+            name="start_time",
+            location=OpenApiParameter.QUERY,
+            description="검색 시작 시간 (예: 09:00)",
+        ),
+        OpenApiParameter(
+            name="end_time",
+            location=OpenApiParameter.QUERY,
+            description="검색 종료 시간 (예: 11:00)",
         ),
     ],
     responses={200: RecruitmentSerializer(many=True)},
@@ -64,9 +88,21 @@ class RecruitmentSearchView(APIView):
             queryset = queryset.filter(date__range=[start_date, end_date])
 
         # ✅ 시간 필터링
-        time = request.query_params.get("time")
-        if time:
-            queryset = queryset.filter(Q(start_time__lte=time) & Q(end_time__gte=time))
+        start_time_param = request.query_params.get("start_time")
+        end_time_param = request.query_params.get("end_time")
+
+        start_time = parse_time(start_time_param) if start_time_param else None
+        end_time = parse_time(end_time_param) if end_time_param else None
+
+        if start_time and end_time:
+            queryset = queryset.filter(
+                start_time__lt=end_time,
+                end_time__gt=start_time,
+            )
+
+        # time = request.query_params.get("time")
+        # if time:
+        #     queryset = queryset.filter(Q(start_time__lte=time) & Q(end_time__gte=time))
 
         if not queryset.exists():
             return Response(
