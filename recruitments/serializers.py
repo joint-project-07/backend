@@ -114,7 +114,7 @@ class RecruitmentCreateUpdateSerializer(serializers.ModelSerializer):
 
 # ✅ 봉사활동 상세 조회 시리얼라이저
 class RecruitmentDetailSerializer(serializers.ModelSerializer):
-    images = RecruitmentImageSerializer( many=True, read_only=True)
+    images = RecruitmentImageSerializer(many=True, read_only=True)
     shelter_name = serializers.CharField(source="shelter.name", read_only=True)
     shelter_region = serializers.CharField(source="shelter.region", read_only=True)
 
