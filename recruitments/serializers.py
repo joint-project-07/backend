@@ -36,7 +36,7 @@ class RecruitmentSerializer(serializers.ModelSerializer):
         ]
 
 
-recruitment_types = ["cleaning", "walking", "feeding", "other"]
+recruitment_types = ["cleaning", "walking", "feeding", "bathing", "playing"]
 
 
 # ✅ 봉사활동 등록/수정 시리얼라이저
