@@ -48,7 +48,7 @@ class Recruitment(BaseModel):
 
 class RecruitmentImage(BaseModel):
     id = models.AutoField(primary_key=True)
-    recruitment = models.ForeignKey(Recruitment, on_delete=models.CASCADE)
+    recruitment = models.ForeignKey(Recruitment, on_delete=models.CASCADE, related_name="images")
     image_url = models.URLField()
 
     def __str__(self):
