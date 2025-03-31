@@ -1,6 +1,6 @@
 from django.db.models import Q
 from django.utils.dateparse import parse_time
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -14,22 +14,10 @@ from .models import Recruitment, RecruitmentImage
 from .serializers import (
     RecruitmentApplicantSerializer,
     RecruitmentCreateUpdateSerializer,
+    RecruitmentDetailSerializer,
     RecruitmentImageSerializer,
     RecruitmentSerializer,
 )
-
-
-from django.db.models import Q
-from django.utils.dateparse import parse_time
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
-from rest_framework import status
-
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
-
-from .models import Recruitment
-from .serializers import RecruitmentSerializer
 
 
 # 🧀 봉사활동 검색 (GET /api/recruitments/search)
@@ -129,7 +117,9 @@ class RecruitmentListView(APIView):
 
 
 # 🧀 봉사활동 상세 조회
-@extend_schema(summary="봉사활동 상세 조회", responses={200: RecruitmentSerializer})
+@extend_schema(
+    summary="봉사활동 상세 조회", responses={200: RecruitmentDetailSerializer}
+)
 class RecruitmentDetailView(APIView):
     permission_classes = [AllowAny]
 
