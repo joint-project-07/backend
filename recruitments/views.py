@@ -221,7 +221,7 @@ class RecruitmentApplicantView(APIView):
             )
 
         users = [app.user for app in applications]
-        serializer = RecruitmentApplicantSerializer(users, many=True)
+        serializer = RecruitmentApplicantSerializer(applications, many=True)
         return Response({"applicants": serializer.data}, status=status.HTTP_200_OK)
 
 
