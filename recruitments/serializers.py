@@ -17,7 +17,7 @@ class RecruitmentImageSerializer(serializers.ModelSerializer):
 class RecruitmentSerializer(serializers.ModelSerializer):
     shelter_name = serializers.CharField(source="shelter.name", read_only=True)
     shelter_region = serializers.CharField(source="shelter.region", read_only=True)
-    images = RecruitmentImageSerializer(read_only=True)
+    images = RecruitmentImageSerializer(source="recruitmentimage_set", many=True, read_only=True)
 
     class Meta:
         model = Recruitment
@@ -113,7 +113,7 @@ class RecruitmentCreateUpdateSerializer(serializers.ModelSerializer):
 
 # ✅ 봉사활동 상세 조회 시리얼라이저
 class RecruitmentDetailSerializer(serializers.ModelSerializer):
-    images = RecruitmentImageSerializer(read_only=True)
+    images = RecruitmentImageSerializer(source="recruitmentimage_set", many=True, read_only=True)
     shelter_name = serializers.CharField(source="shelter.name", read_only=True)
     shelter_region = serializers.CharField(source="shelter.region", read_only=True)
 
