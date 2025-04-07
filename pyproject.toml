@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "dangnyang-heroes"
+version = "0.1.0"
+description = ""
+authors = ["SOLBI <thfqlsla35@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+django = "^5.1.6"
+black = "^25.1.0"
+isort = "^6.0.1"
+gunicorn = "^23.0.0"
+django-environ = "^0.12.0"
+psycopg2-binary = "^2.9.10"
+drf-spectacular = "^0.28.0"
+djangorestframework-simplejwt = "^5.5.0"
+django-cors-headers = "^4.7.0"
+django-storages = "^1.14.5"
+boto3 = "1.35.99"
+pillow = "^11.1.0"
+requests = "^2.32.3"
+
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+profile = "black"
